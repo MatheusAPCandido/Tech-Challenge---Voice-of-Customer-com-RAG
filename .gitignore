@@ -6,9 +6,17 @@ venv/
 .ipynb_checkpoints/
 
 # Dados e artefatos (não subir)
-data/
+data/*
+!data/README.md
 chroma_db/
+artifacts/
 *.parquet
 
 # Segredos
 .env
+
+# Sistema / editores
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

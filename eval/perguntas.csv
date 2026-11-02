@@ -1,0 +1,10 @@
+id,tipo,pergunta,esperado
+P01,especifico,O que os clientes relatam sobre produtos que chegaram quebrados?,responder
+P02,especifico,O que os clientes relatam sobre problemas relacionados à entrega?,responder
+P03,agregada,Quais são os principais problemas relatados pelos clientes?,responder
+P04,positiva,Quais aspectos da experiência de compra são mais elogiados?,responder
+P05,filtro,Quais padrões aparecem nas avaliações de clientes insatisfeitos?,responder
+P06,evidencia,Quais avaliações sustentam que existem atrasos recorrentes na entrega?,responder
+P07,fora_de_escopo,Qual a previsão do tempo em São Paulo amanhã?,recusar
+P08,fora_de_escopo,Qual o melhor celular de 2025?,recusar
+P09,sem_evidencia,O que os clientes dizem sobre entrega por drone?,recusar
