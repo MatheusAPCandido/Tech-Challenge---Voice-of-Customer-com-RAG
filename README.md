@@ -58,7 +58,8 @@ Consulta (a cada pergunta)
 └── src/
     ├── config.py            # configurações e variáveis de ambiente
     ├── schema.py            # contrato de dados entre os módulos
-    ├── prepare.py           # Etapa 1: seleção, limpeza, metadados
+    ├── prepare.py           # Etapa 1: seleção, limpeza, metadados (executa src/medallion)
+    ├── medallion/           # camadas bronze → silver → gold da preparação
     ├── index.py             # embeddings, banco vetorial e BM25
     ├── retrieve.py          # transformação da pergunta e busca híbrida
     ├── guardrails.py        # escopo, limiar e evidência insuficiente
@@ -83,14 +84,66 @@ _TODO: confirmar escolhas e versões._
 
 ## Preparação da base
 
-_TODO (Pessoa A): descrever e justificar_
+A preparação (`python -m src.prepare`) segue a arquitetura **medallion**, em `src/medallion/`.
+A saída é `data/reviews_docs.parquet`, com exatamente as colunas de `schema.COLUNAS_DOCUMENTO`.
 
-- Seleção dos dados e tabelas utilizadas
-- Limpeza e preparação dos textos
-- Tratamento de valores ausentes
-- Organização dos documentos (uma review = um documento)
-- Criação dos embeddings
-- Armazenamento e indexação
+| Camada | O que faz | Onde fica |
+| --- | --- | --- |
+| **Bronze** | Cópia fiel dos CSVs em parquet, tudo como texto, + metadados de ingestão. Baixa do Kaggle com `kagglehub` se os CSVs não estiverem em `data/`. | `data/bronze/` |
+| **Silver** | Tipagem (datas, números), string vazia → nulo, limpeza dos textos, remoção de duplicatas exatas, tradução de categorias e checagens de integridade. | `data/silver/` |
+| **Gold** | Junta as tabelas, aplica as regras de seleção abaixo e gera os documentos do RAG. | `data/reviews_docs.parquet` e `data/gold/` |
+
+### Seleção dos dados
+
+Tabelas usadas: reviews (texto e nota), orders (datas de compra e entrega), order_items + products
+(categoria) e customers (UF). Pagamentos e geolocalização ficam de fora porque não acrescentam
+informação útil às perguntas de Voice of Customer.
+
+### Limpeza dos textos
+
+Limpeza leve, porque os modelos de embedding funcionam melhor com texto natural: quebras de linha
+e tabs viram espaço, caracteres de controle são removidos e espaços repetidos são unidos.
+**Acentos, maiúsculas, pontuação e stopwords são mantidos.** O `texto` é `"Título. Mensagem"`,
+ou só a parte que existir. Se o título repete a mensagem, ele não é duplicado.
+
+### Regras de seleção e números (base completa, 99.224 reviews)
+
+| Regra | Removidas | Justificativa |
+| --- | ---: | --- |
+| Sem título nem mensagem | 56.537 | Sem texto não há o que recuperar. A nota continua disponível na silver. |
+| Menos de 3 letras (`.`, `ok`, `10`, `*****`, emojis soltos) | 421 | Não carregam informação. "Bom" e "Ruim" ficam, porque expressam sentimento. |
+| Mesmo `review_id` ligado a mais de um pedido | 315 | O texto é o mesmo; um documento por review evita citações duplicadas. |
+| Texto idêntico (ignorando caixa, acentos e pontuação) | 7.039 | Evita que dezenas de cópias de "muito bom" ocupem o top-k da busca. Fica a avaliação mais antiga. |
+| **Documentos no índice** | **34.912** | |
+
+### Valores ausentes e metadados
+
+| Coluna | Regra |
+| --- | --- |
+| `data_compra` | Mês da compra (`AAAA-MM`), de `order_purchase_timestamp`. |
+| `dias_atraso` | Data real de entrega − data prevista, em dias (positivo = atrasou). `NaN` nos 1.710 pedidos não entregues. |
+| `entregue` | `True` quando existe data de entrega ao cliente. |
+| `categoria` | Categoria em português do **item mais caro** do pedido (9,8 mil pedidos têm mais de um item). Sem categoria ou pedido sem itens → `sem_categoria` (990 documentos). |
+| `estado` | UF do cliente, sem ausentes. |
+| `tema` | Vazio, preenchido na T08. |
+
+### Saídas extras em `data/gold/`
+
+- `reviews_completo.parquet`: as 41.951 reviews com conteúdo, **antes** da deduplicação de textos, com colunas
+  extras (`sentimento`, `categoria_en`, `todas_categorias`, `n_itens`, `valor_pedido`, `estado_seller`,
+  `order_status`) e `qtd_textos_identicos`. Use esta tabela para respostas agregadas, porque ela preserva as contagens.
+- `resumo_categorias.parquet`: nota média, % de negativas e % de atraso por categoria.
+- `_qualidade.json` (também em `data/silver/`): todas as contagens acima, geradas a cada execução.
+
+### Achado relevante para o RAG
+
+Entre as entregas atrasadas, **74% das avaliações são negativas (nota 1–2)**, contra 21% quando a
+entrega chega no prazo. O atraso é o principal motor de insatisfação, e `dias_atraso` é o
+metadado mais útil para filtros (`atrasou=True`).
+
+### Embeddings e indexação
+
+_TODO (T06/T07): modelo escolhido, comparação e armazenamento no ChromaDB + BM25._
 
 ## Pipeline RAG
 
@@ -138,8 +191,10 @@ cp .env.example .env   # no Windows: copy .env.example .env
 
 ### 3. Baixar os dados
 
-Baixe o dataset no [Kaggle](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce/data)
-e extraia os CSVs na pasta `data/` (veja `data/README.md`).
+Automático: se os CSVs não estiverem em `data/`, o `python -m src.prepare` baixa o dataset com
+`kagglehub` e copia os arquivos para lá. Também dá para baixar manualmente no
+[Kaggle](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce/data) e extrair os CSVs na
+pasta `data/` (veja `data/README.md`).
 
 ### 4. Construir a base de conhecimento
 
@@ -160,6 +215,35 @@ Com `USE_MOCK=true` no `.env`, a interface roda com dados falsos, sem precisar d
 
 ```bash
 python -m eval.run_eval
+```
+
+## Etapas Intermediárias Finalizadas
+
+### T11 — Transformação da pergunta (Pessoa B)
+
+`processar_pergunta()` em `src/retrieve.py` classifica a pergunta (`pontual` / `agregada` / `fora_de_escopo`),
+extrai filtros e monta a consulta antes da busca. Com `LLM_PROVIDER=ollama` usa JSON via Ollama
+(`qwen2.5` recomendado); sem Ollama, usa regras locais.
+
+**Verificar:**
+
+```bash
+# opcional
+ollama serve && ollama pull qwen2.5
+
+python -c "
+from src.retrieve import processar_pergunta
+from src.pipeline import perguntar
+
+print(processar_pergunta('Quais padrões aparecem nas avaliações de clientes insatisfeitos?'))
+# esperado: agregada + review_score_max=2
+
+print(processar_pergunta('Qual a previsão do tempo em São Paulo amanhã?'))
+# esperado: fora_de_escopo
+
+r = perguntar('Qual a previsão do tempo em São Paulo amanhã?')
+print(r.recusada, r.motivo_recusa)  # True, fora_de_escopo
+"
 ```
 
 ## Principais decisões técnicas
