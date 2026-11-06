@@ -217,6 +217,35 @@ Com `USE_MOCK=true` no `.env`, a interface roda com dados falsos, sem precisar d
 python -m eval.run_eval
 ```
 
+## Etapas Intermediárias Finalizadas
+
+### T11 — Transformação da pergunta (Pessoa B)
+
+`processar_pergunta()` em `src/retrieve.py` classifica a pergunta (`pontual` / `agregada` / `fora_de_escopo`),
+extrai filtros e monta a consulta antes da busca. Com `LLM_PROVIDER=ollama` usa JSON via Ollama
+(`qwen2.5` recomendado); sem Ollama, usa regras locais.
+
+**Verificar:**
+
+```bash
+# opcional
+ollama serve && ollama pull qwen2.5
+
+python -c "
+from src.retrieve import processar_pergunta
+from src.pipeline import perguntar
+
+print(processar_pergunta('Quais padrões aparecem nas avaliações de clientes insatisfeitos?'))
+# esperado: agregada + review_score_max=2
+
+print(processar_pergunta('Qual a previsão do tempo em São Paulo amanhã?'))
+# esperado: fora_de_escopo
+
+r = perguntar('Qual a previsão do tempo em São Paulo amanhã?')
+print(r.recusada, r.motivo_recusa)  # True, fora_de_escopo
+"
+```
+
 ## Principais decisões técnicas
 
 _TODO: resumo das decisões e justificativas, com números da avaliação._

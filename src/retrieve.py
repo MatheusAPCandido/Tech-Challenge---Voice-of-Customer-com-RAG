@@ -5,10 +5,24 @@ Tarefas: T11 (transformação), T12 (busca híbrida + RRF), T13 (filtros), T14 (
 
 from __future__ import annotations
 
+import json
+import logging
+import re
+import unicodedata
 from typing import Optional
 
-from src.config import TOP_K_CANDIDATOS, TOP_K_FINAL, USE_MOCK
-from src.schema import ConsultaProcessada, Evidencia
+from src.config import (
+    LLM_MODEL,
+    LLM_PROVIDER,
+    OLLAMA_HOST,
+    OLLAMA_TIMEOUT_S,
+    TOP_K_CANDIDATOS,
+    TOP_K_FINAL,
+    USE_MOCK,
+)
+from src.schema import FILTROS_SUPORTADOS, ConsultaProcessada, Evidencia
+
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Mock — permite que a Pessoa C desenvolva a interface antes da busca real.
@@ -26,15 +40,283 @@ _MOCK = [
               review_score=2, categoria="eletroportateis", data_compra="2018-07", dias_atraso=0.0, estado="BA"),
 ]
 
+_UFS = (
+    "AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO"
+)
+
+# Padrões off-topic (texto já normalizado). Exigem também ausência de âncoras VoC.
+_OFFTOPIC = (
+    "previsao do tempo",
+    "melhor celular",
+    "cotacao",
+    "hora em ",
+    "receita de ",
+    "resultado do jogo",
+    "signo de ",
+)
+
+_ANCORAS_VOC = (
+    "cliente",
+    "avaliacao",
+    "avalia",
+    "review",
+    "entrega",
+    "produto",
+    "pedido",
+    "atraso",
+    "compra",
+    "nota",
+    "reclam",
+    "elogi",
+)
+
+# Frases de agregação — nunca token solto "mais" / "melhor".
+_AGREGADA = (
+    "principais",
+    "padroes",
+    "quais padroes",
+    "em geral",
+    "resumo",
+    "quais sao os",
+    "mais elogi",
+    "mais reclam",
+    "principais problemas",
+    "aspectos da experiencia",
+)
+
+TIPOS_VALIDOS = frozenset({"pontual", "agregada", "fora_de_escopo"})
+
+PROMPT_T11_SISTEMA = """Você analisa perguntas sobre avaliações de clientes de e-commerce (dataset Olist / Voice of Customer).
+NÃO responda a pergunta de negócio. Apenas estruture a entrada.
+
+Responda APENAS com um JSON válido em uma única linha, sem markdown e sem texto fora do JSON.
+Schema:
+{"consulta": "<string para busca>",
+ "filtros": {"review_score_min"?: 1-5, "review_score_max"?: 1-5, "atrasou"?: bool,
+             "estado"?: "UF", "categoria"?: str, "tema"?: str,
+             "periodo_inicio"?: "AAAA-MM", "periodo_fim"?: "AAAA-MM"},
+ "tipo": "pontual|agregada|fora_de_escopo"}
+
+Regras:
+- tipo=fora_de_escopo se a pergunta NÃO for sobre avaliações/experiência de compra Olist.
+- tipo=agregada para visão geral, rankings, "principais", "padrões", "mais elogiados".
+- tipo=pontual para temas específicos com evidências pontuais.
+- Em filtros use SOMENTE as chaves listadas; se não tiver certeza, omita a chave.
+- consulta: versão clara da pergunta para busca semântica (português).
+
+Exemplos:
+Pergunta: Quais padrões aparecem nas avaliações de clientes insatisfatórios?
+{"consulta":"padrões em avaliações de clientes insatisfatórios","filtros":{"review_score_max":2},"tipo":"agregada"}
+
+Pergunta: Quais são os principais problemas relatados pelos clientes?
+{"consulta":"principais problemas relatados pelos clientes","filtros":{},"tipo":"agregada"}
+
+Pergunta: Qual a previsão do tempo em São Paulo amanhã?
+{"consulta":"previsão do tempo","filtros":{},"tipo":"fora_de_escopo"}
+"""
+
+_warned_ollama_fallback = False
+
+
+def _texto_norm(s: str) -> str:
+    """casefold + sem acentos — só para matching de regras."""
+    s = unicodedata.normalize("NFKD", s.casefold())
+    return "".join(c for c in s if not unicodedata.combining(c))
+
+
+def _sanitizar_filtros(filtros: dict) -> dict:
+    """Mantém só chaves de FILTROS_SUPORTADOS com tipos coerentes."""
+    out: dict = {}
+    for chave, valor in (filtros or {}).items():
+        if chave not in FILTROS_SUPORTADOS:
+            continue
+        if chave in ("review_score_min", "review_score_max"):
+            try:
+                n = int(valor)
+            except (TypeError, ValueError):
+                continue
+            if 1 <= n <= 5:
+                out[chave] = n
+        elif chave == "atrasou":
+            if isinstance(valor, bool):
+                out[chave] = valor
+            elif isinstance(valor, (int, float)) and valor in (0, 1):
+                out[chave] = bool(valor)
+            elif isinstance(valor, str) and valor.strip().lower() in {"true", "1", "sim", "yes"}:
+                out[chave] = True
+            elif isinstance(valor, str) and valor.strip().lower() in {"false", "0", "nao", "não", "no"}:
+                out[chave] = False
+        elif chave == "estado":
+            if isinstance(valor, str):
+                uf = valor.strip().upper()
+                if re.fullmatch(r"[A-Z]{2}", uf):
+                    out[chave] = uf
+        elif chave in ("categoria", "tema"):
+            if isinstance(valor, str) and valor.strip():
+                out[chave] = valor.strip()
+        elif chave in ("periodo_inicio", "periodo_fim"):
+            if isinstance(valor, str) and re.fullmatch(r"\d{4}-\d{2}", valor.strip()):
+                out[chave] = valor.strip()
+
+    if "review_score_min" in out and "review_score_max" in out:
+        if out["review_score_min"] > out["review_score_max"]:
+            out.pop("review_score_min", None)
+            out.pop("review_score_max", None)
+    return out
+
+
+def _classificar_tipo(pergunta: str) -> str:
+    """fora_de_escopo → agregada → pontual (default)."""
+    n = _texto_norm(pergunta or "")
+    tem_ancora = any(a in n for a in _ANCORAS_VOC)
+    if any(p in n for p in _OFFTOPIC) and not tem_ancora:
+        return "fora_de_escopo"
+    if any(p in n for p in _AGREGADA):
+        return "agregada"
+    return "pontual"
+
+
+def _extrair_filtros(pergunta: str) -> dict:
+    """Heurísticas óbvias: nota, atraso, UF. Se min e max batem juntos, descarta o par."""
+    n = _texto_norm(pergunta or "")
+    filtros: dict = {}
+
+    quer_max = bool(
+        re.search(r"insatisf", n)
+        or "nota baixa" in n
+        or re.search(r"reclam", n)
+    )
+    quer_min = bool(
+        re.search(r"\bsatisf", n)
+        or re.search(r"elogi", n)
+        or "nota alta" in n
+    )
+    # Ambíguo: os dois → descartar ambos (não inventar faixa).
+    if quer_max and not quer_min:
+        filtros["review_score_max"] = 2
+    elif quer_min and not quer_max:
+        filtros["review_score_min"] = 4
+
+    if (
+        re.search(r"atrasou", n)
+        or re.search(r"atraso", n)
+        or ("demora" in n and ("entrega" in n or "prazo" in n))
+    ):
+        filtros["atrasou"] = True
+
+    m = re.search(rf"\b(?:em|no|na)\s+({_UFS})\b", n, flags=re.IGNORECASE)
+    if not m:
+        m = re.search(rf"\b({_UFS})\b", n, flags=re.IGNORECASE)
+    if m:
+        filtros["estado"] = m.group(1).upper()
+
+    return filtros
+
+
+def _reescrever_consulta(pergunta: str, filtros: dict | None = None) -> str:
+    """Limpeza leve; filtros ignorados no v1 (assinatura pronta para T11b)."""
+    _ = filtros
+    texto = re.sub(r"\s+", " ", (pergunta or "").strip())
+    return texto if texto else (pergunta or "")
+
+
+def _processar_pergunta_regras(pergunta: str) -> ConsultaProcessada:
+    """T11a: transformação só com heurísticas."""
+    tipo = _classificar_tipo(pergunta)
+    filtros = _sanitizar_filtros(_extrair_filtros(pergunta))
+    consulta = _reescrever_consulta(pergunta, filtros)
+    return ConsultaProcessada(
+        pergunta_original=pergunta,
+        consulta=consulta,
+        filtros=filtros,
+        tipo=tipo,
+    )
+
+
+def _strip_cercas_json(texto: str) -> str:
+    """Remove cercas ```json ... ``` como na aula03 de prompt."""
+    bruto = (texto or "").strip()
+    bruto = re.sub(r"^```(?:json)?\s*", "", bruto, flags=re.IGNORECASE)
+    bruto = re.sub(r"\s*```$", "", bruto)
+    return bruto.strip()
+
+
+def _chamar_ollama_json(pergunta: str) -> dict | None:
+    """Chamada curta ao Ollama; None em qualquer falha (sem crash)."""
+    global _warned_ollama_fallback
+    try:
+        import ollama  # lazy: pacote ausente → fallback regras
+    except ImportError:
+        if not _warned_ollama_fallback:
+            logger.warning("Pacote ollama ausente; T11 usa regras.")
+            _warned_ollama_fallback = True
+        return None
+
+    try:
+        client = ollama.Client(host=OLLAMA_HOST, timeout=OLLAMA_TIMEOUT_S)
+        resposta = client.chat(
+            model=LLM_MODEL,
+            messages=[
+                {"role": "system", "content": PROMPT_T11_SISTEMA},
+                {"role": "user", "content": pergunta},
+            ],
+            format="json",
+            options={"temperature": 0, "num_predict": 256},
+        )
+        content = resposta["message"]["content"]
+        dados = json.loads(_strip_cercas_json(content))
+        if not isinstance(dados, dict):
+            return None
+        if "consulta" not in dados and "tipo" not in dados and "filtros" not in dados:
+            return None
+        return dados
+    except Exception as exc:
+        if not _warned_ollama_fallback:
+            logger.warning("Ollama indisponível para T11b (%s); usando regras.", type(exc).__name__)
+            _warned_ollama_fallback = True
+        return None
+
+
+def _consulta_de_llm(dados: dict, pergunta: str) -> ConsultaProcessada:
+    """Merge parcial: filtros do LLM sanitizados; tipo inválido → regras de tipo."""
+    consulta_bruta = dados.get("consulta", "")
+    if not isinstance(consulta_bruta, str):
+        consulta_bruta = str(consulta_bruta) if consulta_bruta is not None else ""
+    consulta = _reescrever_consulta(consulta_bruta) or pergunta
+
+    filtros_raw = dados.get("filtros") or {}
+    if not isinstance(filtros_raw, dict):
+        filtros_raw = {}
+    filtros = _sanitizar_filtros(filtros_raw)
+
+    tipo_bruto = dados.get("tipo", "")
+    tipo = tipo_bruto.strip().lower() if isinstance(tipo_bruto, str) else ""
+    if tipo not in TIPOS_VALIDOS:
+        tipo = _classificar_tipo(pergunta)
+
+    return ConsultaProcessada(
+        pergunta_original=pergunta,
+        consulta=consulta,
+        filtros=filtros,
+        tipo=tipo,
+    )
+
 
 def processar_pergunta(pergunta: str) -> ConsultaProcessada:
     """T11: reescreve a pergunta, extrai filtros e classifica o tipo.
 
-    TODO: chamada curta ao LLM com saída JSON:
-      {"consulta": "...", "filtros": {...}, "tipo": "pontual|agregada|fora_de_escopo"}
-    Ex.: "clientes insatisfeitos" → filtros = {"review_score_max": 2}
+    T11b: se LLM_PROVIDER=ollama, tenta JSON via Ollama; senão/ falha → regras T11a.
+    Ex.: "clientes insatisfatórios" → filtros = {"review_score_max": 2}
     """
-    return ConsultaProcessada(pergunta_original=pergunta, consulta=pergunta)
+    if not isinstance(pergunta, str):
+        pergunta = "" if pergunta is None else str(pergunta)
+
+    if LLM_PROVIDER.strip().lower() == "ollama":
+        dados = _chamar_ollama_json(pergunta)
+        if dados is not None:
+            return _consulta_de_llm(dados, pergunta)
+
+    return _processar_pergunta_regras(pergunta)
 
 
 def buscar(pergunta: str, filtros: Optional[dict] = None, k: int = TOP_K_FINAL) -> list[Evidencia]:
