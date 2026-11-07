@@ -249,7 +249,7 @@ print(r.recusada, r.motivo_recusa)  # True, fora_de_escopo
 ### T12 — Busca híbrida com RRF (Pessoa B)
 
 `buscar()` em `src/retrieve.py` combina Chroma (vetorial) + BM25 e funde com RRF (`RRF_K=60`).
-O score é normalizado ≈`[0, 1]` para o limiar atual; filtros de metadados ficam para T13.
+O score é normalizado ≈`[0, 1]` para o limiar atual.
 
 **Verificar** (`USE_MOCK=false`, índice já gerado com `python -m src.index --amostra`):
 
@@ -258,6 +258,21 @@ USE_MOCK=false python -c "
 from src.retrieve import buscar
 evs = buscar('entrega atrasada')
 print(len(evs), round(evs[0].score, 4), evs[0].texto[:100])
+"
+```
+
+### T13 — Filtros por metadados (Pessoa B)
+
+`buscar(..., filtros)` aplica `FILTROS_SUPORTADOS` no Chroma (`where`) e no mesmo recorte do BM25 antes do RRF.
+Filtro por `tema` só faz sentido após T08 (hoje o campo costuma estar vazio).
+
+**Verificar:**
+
+```bash
+USE_MOCK=false python -c "
+from src.retrieve import buscar
+a = buscar('entrega', {'review_score_max': 2})
+print([(e.review_score, e.texto[:50]) for e in a[:3]])
 "
 ```
 
