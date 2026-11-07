@@ -6,21 +6,13 @@ Tarefas: T19 (prompt + contexto), T21 (geração), T22 (validação), T23/T24 (a
 from __future__ import annotations
 
 import re
+import time
 
 from pydantic import BaseModel, Field
 
 from src.config import GEN_MOCK, GEN_MODEL, GEN_PROVIDER
 from src.schema import Evidencia, Resposta
 
-# Modo mock: USE_MOCK e GEN_MOCK
-"""
-Antes, o USE_MOCK ligava o mock da busca e o da geração juntos. A T21 separa os dois: USE_MOCK controla a busca, e GEN_MOCK controla a geração.
-Se GEN_MOCK não estiver no .env, ele segue o USE_MOCK, e nada muda para quem não o definir.
-Para testar o Gemini sem carregar o índice, use busca falsa com geração real:
-    USE_MOCK=true
-    GEN_MOCK=false
-No .env.example, o GEN_MOCK fica comentado para não fixar a geração falsa por engano.
-"""
 
 class SaidaLLM(BaseModel):
     """Saída estruturada da geração (T21). Interna ao generate.py; não altera o contrato Resposta."""
