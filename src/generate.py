@@ -10,8 +10,11 @@ import time
 
 from pydantic import BaseModel, Field
 
-from src.config import GEN_MOCK, GEN_MODEL, GEN_PROVIDER
+from src.config import GEN_MOCK, GEN_MODEL, GEN_PROVIDER, MIN_EVIDENCIAS
 from src.schema import Evidencia, Resposta
+
+# Frase de recusa exata: com a frase fixa, o código detecta a recusa comparando texto).
+FRASE_RECUSA = "As avaliações recuperadas não permitem responder a esta pergunta."
 
 
 class SaidaLLM(BaseModel):
@@ -122,6 +125,11 @@ def montar_contexto(evidencias: list[Evidencia]) -> tuple[str, dict[str, str]]:
         )
     return "<avaliacoes>\n" + "\n\n".join(linhas) + "\n</avaliacoes>", mapa
 
+def remover_citacoes_invalidas(texto: str, mapa: dict[str, str]) -> str:
+    """T22: tira do texto as citações [R#] que não existem no contexto."""
+    texto = re.sub(r"\[(R\d+)\]", lambda m: m.group(0) if m.group(1) in mapa else "", texto)
+    texto = re.sub(r"\s+([.,;:])", r"\1", texto)  # espaço que sobra antes da pontuação
+    return re.sub(r"[ \t]{2,}", " ", texto).strip()
 
 def validar_citacoes(texto: str, mapa: dict[str, str]) -> list[str]:
     """T22: mantém só as citações [R#] que existem no contexto e devolve os review_ids."""
@@ -162,8 +170,18 @@ def responder(pergunta: str, evidencias: list[Evidencia]) -> Resposta:
         )
     else:
         saida = chamar_llm(PROMPT_SISTEMA, f"{contexto}\n\nPergunta: {pergunta}")
-        # LIMITAÇÃO até a T22: saida.pode_responder ainda não é usado. Se o modelo
-        # sinalizar que não pode responder, o texto chega à interface com recusada=False.
         texto = saida.texto
-    citacoes = validar_citacoes(texto, mapa)
-    return Resposta(texto=texto, citacoes=citacoes, evidencias=evidencias)
+        modelo_recusou = not saida.pode_responder
+
+    # T22: o código confere as citações e decide a recusa e a confiança.
+    if not GEN_MOCK and modelo_recusou:
+        recusou = True
+    else:
+        texto = remover_citacoes_invalidas(texto, mapa)
+        citacoes = validar_citacoes(texto, mapa)
+        recusou = texto.strip() == FRASE_RECUSA or not citacoes
+    if recusou:
+        return Resposta(texto=FRASE_RECUSA, evidencias=evidencias, confianca="baixa",
+                        recusada=True, motivo_recusa="sem_evidencia")
+    confianca = "alta" if len(citacoes) >= MIN_EVIDENCIAS else "media"
+    return Resposta(texto=texto, citacoes=citacoes, evidencias=evidencias, confianca=confianca)
