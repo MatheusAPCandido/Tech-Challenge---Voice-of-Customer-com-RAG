@@ -78,7 +78,7 @@ _TODO: confirmar escolhas e versões._
 | Embeddings | _TODO_ (ex.: `intfloat/multilingual-e5-base`) |
 | Banco vetorial | ChromaDB |
 | Busca lexical | rank-bm25 |
-| Reranker | _TODO_ (ex.: `BAAI/bge-reranker-v2-m3`) |
+| Reranker | `BAAI/bge-reranker-v2-m3` (cross-encoder) |
 | LLM | _TODO_ |
 | Interface | Streamlit |
 
@@ -273,6 +273,22 @@ USE_MOCK=false python -c "
 from src.retrieve import buscar
 a = buscar('entrega', {'review_score_max': 2})
 print([(e.review_score, e.texto[:50]) for e in a[:3]])
+"
+```
+
+### T14 — Reranker cross-encoder (Pessoa B)
+
+Após a híbrida (aula02: BM25 + vetorial + RRF), um **cross-encoder** (`RERANKER_MODEL`) reordena o pool
+(`TOP_K_CANDIDATOS`) e corta em `TOP_K_FINAL`. O score final é `sigmoid(logit)` ≈`(0, 1]` (calibração do limiar = T15).
+
+**Verificar** (`USE_MOCK=false`; 1ª execução pode baixar o modelo):
+
+```bash
+USE_MOCK=false python -c "
+from src.retrieve import buscar
+evs = buscar('entrega atrasada')
+print(len(evs), [round(e.score, 3) for e in evs[:5]])
+print(evs[0].texto[:100])
 "
 ```
 
