@@ -25,6 +25,14 @@ EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "intfloat/multilingual-e5-base")
 RERANKER_MODEL = os.getenv("RERANKER_MODEL", "BAAI/bge-reranker-v2-m3")
 LLM_PROVIDER = os.getenv("LLM_PROVIDER", "openai")
 LLM_MODEL = os.getenv("LLM_MODEL", "gpt-4o-mini")
+
+# Geração da resposta (T21): provedor próprio, separado do LLM_PROVIDER da T11.
+GEN_PROVIDER = os.getenv("GEN_PROVIDER", "gemini")
+GEN_MODEL = os.getenv("GEN_MODEL", "gemini-3.5-flash")
+# GEN_MOCK=false chama o LLM de verdade mesmo com USE_MOCK=true (evidências falsas).
+# Se não for definido, segue o USE_MOCK.
+GEN_MOCK = _bool("GEN_MOCK", os.getenv("USE_MOCK", "true"))
+
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434")
 OLLAMA_TIMEOUT_S = float(os.getenv("OLLAMA_TIMEOUT_S", "5"))
 
