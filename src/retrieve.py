@@ -20,9 +20,23 @@ from src.config import (
     TOP_K_FINAL,
     USE_MOCK,
 )
+from src.index import (
+    BM25_PATH,
+    CHROMA_DIR,
+    abrir_colecao,
+    carregar_bm25,
+    carregar_modelo_embedding,
+    preparar_consulta,
+    tokenizar,
+)
 from src.schema import FILTROS_SUPORTADOS, ConsultaProcessada, Evidencia
 
 logger = logging.getLogger(__name__)
+
+RRF_K = 60
+
+# Cache de processo: coleção / BM25 / modelo (reconstruir o índice com o app ligado fica stale).
+_recursos: dict | None = None
 
 # ---------------------------------------------------------------------------
 # Mock — permite que a Pessoa C desenvolva a interface antes da busca real.
@@ -319,15 +333,151 @@ def processar_pergunta(pergunta: str) -> ConsultaProcessada:
     return _processar_pergunta_regras(pergunta)
 
 
+def _recursos_indice() -> dict:
+    """Carrega uma vez coleção Chroma, BM25 e modelo de embedding."""
+    global _recursos
+    if _recursos is not None:
+        return _recursos
+
+    if not BM25_PATH.exists():
+        raise FileNotFoundError(
+            f"Índice BM25 não encontrado em {BM25_PATH}. "
+            "Rode: python -m src.index --amostra"
+        )
+    if not CHROMA_DIR.exists():
+        raise FileNotFoundError(
+            f"Diretório Chroma ausente em {CHROMA_DIR}. "
+            "Rode: python -m src.index --amostra"
+        )
+
+    try:
+        colecao = abrir_colecao()
+    except Exception as exc:
+        raise FileNotFoundError(
+            f"Coleção Chroma indisponível em {CHROMA_DIR}. "
+            "Rode: python -m src.index --amostra"
+        ) from exc
+
+    ids_bm25, bm25 = carregar_bm25()
+    modelo = carregar_modelo_embedding()
+    _recursos = {"colecao": colecao, "ids_bm25": ids_bm25, "bm25": bm25, "modelo": modelo}
+    return _recursos
+
+
+def _busca_vetorial(pergunta: str, n: int) -> list[str]:
+    """Top-n ids por similaridade de cosseno no Chroma (ordem = ranking)."""
+    rec = _recursos_indice()
+    vetor = rec["modelo"].encode(
+        [preparar_consulta(pergunta)],
+        normalize_embeddings=True,
+        show_progress_bar=False,
+        convert_to_numpy=True,
+    )
+    resultado = rec["colecao"].query(
+        query_embeddings=[vetor[0].tolist()],
+        n_results=n,
+        include=["documents", "metadatas", "distances"],
+    )
+    ids = (resultado.get("ids") or [[]])[0]
+    return [str(i) for i in ids]
+
+
+def _busca_bm25(pergunta: str, n: int) -> list[str]:
+    """Top-n ids por BM25; lista vazia se só stopwords ou score ≤ 0."""
+    tokens = tokenizar(pergunta)
+    if not tokens:
+        return []
+
+    rec = _recursos_indice()
+    scores = rec["bm25"].get_scores(tokens)
+    ids = rec["ids_bm25"]
+    ordenados = sorted(
+        ((ids[i], float(scores[i])) for i in range(len(ids)) if scores[i] > 0),
+        key=lambda par: (-par[1], par[0]),
+    )
+    return [rid for rid, _ in ordenados[:n]]
+
+
+def _fundir_rrf(rankings: list[list[str]], k: int) -> list[tuple[str, float]]:
+    """RRF + normalização para ~[0, 1]. Empate: review_id asc."""
+    listas = [r for r in rankings if r]
+    if not listas:
+        return []
+
+    bruto: dict[str, float] = {}
+    for ranking in listas:
+        for rank, rid in enumerate(ranking, start=1):
+            bruto[rid] = bruto.get(rid, 0.0) + 1.0 / (RRF_K + rank)
+
+    n_listas = len(listas)
+    denom = n_listas / (RRF_K + 1)
+    ordenados = sorted(bruto.items(), key=lambda par: (-par[1], par[0]))
+    return [(rid, score / denom) for rid, score in ordenados[:k]]
+
+
+def _meta_opcional(meta: dict, chave: str):
+    if chave not in meta:
+        return None
+    valor = meta[chave]
+    if valor is None:
+        return None
+    return valor
+
+
+def _evidencia_de_chroma(review_id: str, texto: str, score: float, meta: dict | None) -> Evidencia:
+    meta = meta or {}
+    review_score = _meta_opcional(meta, "review_score")
+    dias_atraso = _meta_opcional(meta, "dias_atraso")
+    return Evidencia(
+        review_id=review_id,
+        texto=texto or "",
+        score=score,
+        review_score=int(review_score) if review_score is not None else None,
+        categoria=_meta_opcional(meta, "categoria"),
+        data_compra=_meta_opcional(meta, "data_compra"),
+        dias_atraso=float(dias_atraso) if dias_atraso is not None else None,
+        estado=_meta_opcional(meta, "estado"),
+        tema=_meta_opcional(meta, "tema") or None,
+    )
+
+
 def buscar(pergunta: str, filtros: Optional[dict] = None, k: int = TOP_K_FINAL) -> list[Evidencia]:
     """Contrato principal: devolve as k evidências mais relevantes, ordenadas por score.
 
+    T12 — busca vetorial (top TOP_K_CANDIDATOS) + BM25 (top TOP_K_CANDIDATOS) + RRF
+         Score RRF normalizado para ~[0, 1] (paliativo até T14/T15 e LIMIAR_RELEVANCIA).
     TODO:
-      T12 — busca vetorial (top TOP_K_CANDIDATOS) + BM25 (top TOP_K_CANDIDATOS) + RRF
       T13 — aplicar filtros de metadados (ver schema.FILTROS_SUPORTADOS)
       T14 — reordenar com cross-encoder e cortar em k
     """
     if USE_MOCK:
         return sorted(_MOCK, key=lambda e: e.score, reverse=True)[:k]
-    _ = (filtros, TOP_K_CANDIDATOS)
-    raise NotImplementedError("Implementar nas tarefas T12–T14")
+
+    _ = filtros  # T13
+    pergunta = pergunta if isinstance(pergunta, str) else ("" if pergunta is None else str(pergunta))
+    n = TOP_K_CANDIDATOS
+
+    ids_vec = _busca_vetorial(pergunta, n)
+    ids_bm25 = _busca_bm25(pergunta, n)
+    fundidos = _fundir_rrf([ids_vec, ids_bm25], k)
+    if not fundidos:
+        return []
+
+    ids_finais = [rid for rid, _ in fundidos]
+    scores = {rid: score for rid, score in fundidos}
+
+    rec = _recursos_indice()
+    bruto = rec["colecao"].get(ids=ids_finais, include=["documents", "metadatas"])
+    por_id: dict[str, tuple[str, dict]] = {}
+    for i, rid in enumerate(bruto.get("ids") or []):
+        docs = bruto.get("documents") or []
+        metas = bruto.get("metadatas") or []
+        texto = docs[i] if i < len(docs) else ""
+        meta = metas[i] if i < len(metas) else {}
+        por_id[str(rid)] = (texto or "", meta or {})
+
+    evidencias: list[Evidencia] = []
+    for rid in ids_finais:
+        texto, meta = por_id.get(rid, ("", {}))
+        evidencias.append(_evidencia_de_chroma(rid, texto, scores[rid], meta))
+    return evidencias
