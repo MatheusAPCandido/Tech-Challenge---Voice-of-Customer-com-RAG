@@ -7,8 +7,10 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 import re
 import unicodedata
+from dataclasses import replace
 from typing import Optional
 
 from src.config import (
@@ -16,6 +18,7 @@ from src.config import (
     LLM_PROVIDER,
     OLLAMA_HOST,
     OLLAMA_TIMEOUT_S,
+    RERANKER_MODEL,
     TOP_K_CANDIDATOS,
     TOP_K_FINAL,
     USE_MOCK,
@@ -38,6 +41,8 @@ RRF_K = 60
 
 # Cache de processo: coleção / BM25 / modelo (reconstruir o índice com o app ligado fica stale).
 _recursos: dict | None = None
+# Separado de _recursos para USE_MOCK=true nunca carregar o cross-encoder.
+_reranker = None
 
 # ---------------------------------------------------------------------------
 # Mock — permite que a Pessoa C desenvolva a interface antes da busca real.
@@ -519,14 +524,49 @@ def _evidencia_de_chroma(review_id: str, texto: str, score: float, meta: dict | 
     )
 
 
+def _sigmoid(x: float) -> float:
+    """Logits do BGE reranker → (0, 1] para conviver com LIMIAR_RELEVANCIA até T15."""
+    if x >= 0:
+        z = math.exp(-x)
+        return 1.0 / (1.0 + z)
+    z = math.exp(x)
+    return z / (1.0 + z)
+
+
+def _carregar_reranker():
+    """Lazy: só carrega o cross-encoder na busca real (não no mock)."""
+    global _reranker
+    if _reranker is not None:
+        return _reranker
+    from sentence_transformers import CrossEncoder
+
+    _reranker = CrossEncoder(RERANKER_MODEL)
+    logger.info("Reranker %s carregado", RERANKER_MODEL)
+    return _reranker
+
+
+def _rerank(pergunta: str, candidatos: list[Evidencia], k: int) -> list[Evidencia]:
+    """Reordena com cross-encoder; score final = sigmoid(logit)."""
+    if not candidatos:
+        return []
+
+    modelo = _carregar_reranker()
+    pares = [(pergunta, e.texto) for e in candidatos]
+    logits = modelo.predict(pares, show_progress_bar=False)
+    reranked = [
+        replace(e, score=_sigmoid(float(logit)))
+        for e, logit in zip(candidatos, logits)
+    ]
+    reranked.sort(key=lambda e: (-e.score, e.review_id))
+    return reranked[:k]
+
+
 def buscar(pergunta: str, filtros: Optional[dict] = None, k: int = TOP_K_FINAL) -> list[Evidencia]:
     """Contrato principal: devolve as k evidências mais relevantes, ordenadas por score.
 
-    T12 — busca vetorial (top TOP_K_CANDIDATOS) + BM25 (top TOP_K_CANDIDATOS) + RRF
-         Score RRF normalizado para ~[0, 1] (paliativo até T14/T15 e LIMIAR_RELEVANCIA).
+    T12 — busca vetorial + BM25 + RRF (pool de até TOP_K_CANDIDATOS; RRF só ordena o pool).
     T13 — filtros de metadados (FILTROS_SUPORTADOS) no Chroma e no mesmo recorte do BM25.
-    TODO:
-      T14 — reordenar com cross-encoder e cortar em k
+    T14 — cross-encoder (RERANKER_MODEL); score final = sigmoid(logit); corta em k.
     """
     filtros = _sanitizar_filtros(filtros or {})
     if USE_MOCK:
@@ -540,15 +580,15 @@ def buscar(pergunta: str, filtros: Optional[dict] = None, k: int = TOP_K_FINAL) 
 
     ids_vec = _busca_vetorial(pergunta, n, where=where, ids_ok=ids_ok)
     ids_bm25 = _busca_bm25(pergunta, n, ids_ok=ids_ok)
-    fundidos = _fundir_rrf([ids_vec, ids_bm25], k)
+    fundidos = _fundir_rrf([ids_vec, ids_bm25], n)
     if not fundidos:
         return []
 
-    ids_finais = [rid for rid, _ in fundidos]
-    scores = {rid: score for rid, score in fundidos}
+    ids_pool = [rid for rid, _ in fundidos]
+    scores_rrf = {rid: score for rid, score in fundidos}
 
     rec = _recursos_indice()
-    bruto = rec["colecao"].get(ids=ids_finais, include=["documents", "metadatas"])
+    bruto = rec["colecao"].get(ids=ids_pool, include=["documents", "metadatas"])
     por_id: dict[str, tuple[str, dict]] = {}
     for i, rid in enumerate(bruto.get("ids") or []):
         docs = bruto.get("documents") or []
@@ -557,8 +597,8 @@ def buscar(pergunta: str, filtros: Optional[dict] = None, k: int = TOP_K_FINAL) 
         meta = metas[i] if i < len(metas) else {}
         por_id[str(rid)] = (texto or "", meta or {})
 
-    evidencias: list[Evidencia] = []
-    for rid in ids_finais:
+    candidatos: list[Evidencia] = []
+    for rid in ids_pool:
         texto, meta = por_id.get(rid, ("", {}))
-        evidencias.append(_evidencia_de_chroma(rid, texto, scores[rid], meta))
-    return evidencias
+        candidatos.append(_evidencia_de_chroma(rid, texto, scores_rrf[rid], meta))
+    return _rerank(pergunta, candidatos, k)
