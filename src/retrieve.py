@@ -24,6 +24,7 @@ from src.index import (
     BM25_PATH,
     CHROMA_DIR,
     abrir_colecao,
+    ano_mes,
     carregar_bm25,
     carregar_modelo_embedding,
     preparar_consulta,
@@ -364,26 +365,100 @@ def _recursos_indice() -> dict:
     return _recursos
 
 
-def _busca_vetorial(pergunta: str, n: int) -> list[str]:
+def _montar_where(filtros: dict) -> dict | None:
+    """Converte FILTROS_SUPORTADOS no `where` do Chroma. None = sem filtro."""
+    clausulas: list[dict] = []
+    if "review_score_min" in filtros:
+        clausulas.append({"review_score": {"$gte": int(filtros["review_score_min"])}})
+    if "review_score_max" in filtros:
+        clausulas.append({"review_score": {"$lte": int(filtros["review_score_max"])}})
+    if "atrasou" in filtros:
+        clausulas.append({"atrasou": {"$eq": bool(filtros["atrasou"])}})
+    for chave in ("categoria", "estado", "tema"):
+        if chave in filtros:
+            clausulas.append({chave: {"$eq": str(filtros[chave])}})
+    if "periodo_inicio" in filtros:
+        clausulas.append({"ano_mes": {"$gte": ano_mes(str(filtros["periodo_inicio"]))}})
+    if "periodo_fim" in filtros:
+        clausulas.append({"ano_mes": {"$lte": ano_mes(str(filtros["periodo_fim"]))}})
+
+    if not clausulas:
+        return None
+    if len(clausulas) == 1:
+        return clausulas[0]
+    return {"$and": clausulas}
+
+
+def _ids_permitidos(where: dict | None) -> set[str] | None:
+    """None = universo completo; set (pode ser vazio) = recorte do where."""
+    if where is None:
+        return None
+    bruto = _recursos_indice()["colecao"].get(where=where, include=[])
+    return {str(rid) for rid in (bruto.get("ids") or [])}
+
+
+def _passar_filtro_mock(e: Evidencia, filtros: dict) -> bool:
+    """Mesma semântica dos filtros, aplicada aos campos do mock."""
+    if "review_score_min" in filtros:
+        if e.review_score is None or e.review_score < filtros["review_score_min"]:
+            return False
+    if "review_score_max" in filtros:
+        if e.review_score is None or e.review_score > filtros["review_score_max"]:
+            return False
+    if "atrasou" in filtros:
+        atrasou = e.dias_atraso is not None and e.dias_atraso > 0
+        if atrasou != bool(filtros["atrasou"]):
+            return False
+    if "categoria" in filtros and e.categoria != filtros["categoria"]:
+        return False
+    if "estado" in filtros and e.estado != filtros["estado"]:
+        return False
+    if "tema" in filtros and e.tema != filtros["tema"]:
+        return False
+    if "periodo_inicio" in filtros:
+        if not e.data_compra or e.data_compra < str(filtros["periodo_inicio"]):
+            return False
+    if "periodo_fim" in filtros:
+        if not e.data_compra or e.data_compra > str(filtros["periodo_fim"]):
+            return False
+    return True
+
+
+def _busca_vetorial(
+    pergunta: str,
+    n: int,
+    where: dict | None = None,
+    ids_ok: set[str] | None = None,
+) -> list[str]:
     """Top-n ids por similaridade de cosseno no Chroma (ordem = ranking)."""
+    if ids_ok is not None and not ids_ok:
+        return []
+
     rec = _recursos_indice()
+    n_results = n if ids_ok is None else min(n, max(1, len(ids_ok)))
     vetor = rec["modelo"].encode(
         [preparar_consulta(pergunta)],
         normalize_embeddings=True,
         show_progress_bar=False,
         convert_to_numpy=True,
     )
-    resultado = rec["colecao"].query(
-        query_embeddings=[vetor[0].tolist()],
-        n_results=n,
-        include=["documents", "metadatas", "distances"],
-    )
+    kwargs: dict = {
+        "query_embeddings": [vetor[0].tolist()],
+        "n_results": n_results,
+        "include": ["documents", "metadatas", "distances"],
+    }
+    if where is not None:
+        kwargs["where"] = where
+    resultado = rec["colecao"].query(**kwargs)
     ids = (resultado.get("ids") or [[]])[0]
     return [str(i) for i in ids]
 
 
-def _busca_bm25(pergunta: str, n: int) -> list[str]:
-    """Top-n ids por BM25; lista vazia se só stopwords ou score ≤ 0."""
+def _busca_bm25(pergunta: str, n: int, ids_ok: set[str] | None = None) -> list[str]:
+    """Top-n ids por BM25; lista vazia se só stopwords, score ≤ 0 ou recorte vazio."""
+    if ids_ok is not None and not ids_ok:
+        return []
+
     tokens = tokenizar(pergunta)
     if not tokens:
         return []
@@ -392,11 +467,14 @@ def _busca_bm25(pergunta: str, n: int) -> list[str]:
     scores = rec["bm25"].get_scores(tokens)
     ids = rec["ids_bm25"]
     ordenados = sorted(
-        ((ids[i], float(scores[i])) for i in range(len(ids)) if scores[i] > 0),
+        (
+            (ids[i], float(scores[i]))
+            for i in range(len(ids))
+            if scores[i] > 0 and (ids_ok is None or ids[i] in ids_ok)
+        ),
         key=lambda par: (-par[1], par[0]),
     )
     return [rid for rid, _ in ordenados[:n]]
-
 
 def _fundir_rrf(rankings: list[list[str]], k: int) -> list[tuple[str, float]]:
     """RRF + normalização para ~[0, 1]. Empate: review_id asc."""
@@ -446,19 +524,22 @@ def buscar(pergunta: str, filtros: Optional[dict] = None, k: int = TOP_K_FINAL) 
 
     T12 — busca vetorial (top TOP_K_CANDIDATOS) + BM25 (top TOP_K_CANDIDATOS) + RRF
          Score RRF normalizado para ~[0, 1] (paliativo até T14/T15 e LIMIAR_RELEVANCIA).
+    T13 — filtros de metadados (FILTROS_SUPORTADOS) no Chroma e no mesmo recorte do BM25.
     TODO:
-      T13 — aplicar filtros de metadados (ver schema.FILTROS_SUPORTADOS)
       T14 — reordenar com cross-encoder e cortar em k
     """
+    filtros = _sanitizar_filtros(filtros or {})
     if USE_MOCK:
-        return sorted(_MOCK, key=lambda e: e.score, reverse=True)[:k]
+        filtrados = [e for e in _MOCK if _passar_filtro_mock(e, filtros)]
+        return sorted(filtrados, key=lambda e: e.score, reverse=True)[:k]
 
-    _ = filtros  # T13
     pergunta = pergunta if isinstance(pergunta, str) else ("" if pergunta is None else str(pergunta))
     n = TOP_K_CANDIDATOS
+    where = _montar_where(filtros)
+    ids_ok = _ids_permitidos(where)
 
-    ids_vec = _busca_vetorial(pergunta, n)
-    ids_bm25 = _busca_bm25(pergunta, n)
+    ids_vec = _busca_vetorial(pergunta, n, where=where, ids_ok=ids_ok)
+    ids_bm25 = _busca_bm25(pergunta, n, ids_ok=ids_ok)
     fundidos = _fundir_rrf([ids_vec, ids_bm25], k)
     if not fundidos:
         return []
