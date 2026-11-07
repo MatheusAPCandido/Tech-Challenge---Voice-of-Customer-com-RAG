@@ -7,8 +7,28 @@ from __future__ import annotations
 
 import re
 
-from src.config import USE_MOCK
+from pydantic import BaseModel, Field
+
+from src.config import GEN_MOCK, GEN_MODEL, GEN_PROVIDER
 from src.schema import Evidencia, Resposta
+
+# Modo mock: USE_MOCK e GEN_MOCK
+"""
+Antes, o USE_MOCK ligava o mock da busca e o da geração juntos. A T21 separa os dois: USE_MOCK controla a busca, e GEN_MOCK controla a geração.
+Se GEN_MOCK não estiver no .env, ele segue o USE_MOCK, e nada muda para quem não o definir.
+Para testar o Gemini sem carregar o índice, use busca falsa com geração real:
+    USE_MOCK=true
+    GEN_MOCK=false
+No .env.example, o GEN_MOCK fica comentado para não fixar a geração falsa por engano.
+"""
+
+class SaidaLLM(BaseModel):
+    """Saída estruturada da geração (T21). Interna ao generate.py; não altera o contrato Resposta."""
+
+    texto: str = Field(description="Resposta em português, com [R#] em cada afirmação.")
+    pode_responder: bool = Field(
+        description="False se as avaliações não permitem responder à pergunta."
+    )
 
 # Prompt de sistema — (T19): regras de citação, recusa exata, resposta parcial,
 # avaliações como dado (não instrução) e exemplos fictícios com várias citações.
@@ -117,20 +137,41 @@ def validar_citacoes(texto: str, mapa: dict[str, str]) -> list[str]:
     return [mapa[r] for r in citadas if r in mapa]
 
 
-def chamar_llm(sistema: str, usuario: str) -> str:
-    """T21: chamada ao LLM escolhido (LLM_PROVIDER / LLM_MODEL no .env), temperatura baixa."""
-    raise NotImplementedError("Implementar na tarefa T21")
+def chamar_llm(sistema: str, usuario: str, tentativas: int = 3) -> SaidaLLM:
+    """T21: gera a resposta com saída estruturada (GEN_PROVIDER / GEN_MODEL no .env).
+
+    Temperatura 0. Se a chamada falhar (formato inválido, 503 de alta demanda,
+    tempo esgotado), espera e tenta de novo ("rejeitar e repetir a chamada").
+    """
+    if GEN_PROVIDER != "gemini":
+        raise ValueError(f"GEN_PROVIDER '{GEN_PROVIDER}' não suportado na geração (use 'gemini').")
+    from langchain_google_genai import ChatGoogleGenerativeAI  # import tardio: o mock não precisa
+
+    llm = ChatGoogleGenerativeAI(model=GEN_MODEL, temperature=0, timeout=60, max_retries=0)
+    estruturado = llm.with_structured_output(SaidaLLM)
+    ultimo_erro = None
+    for tentativa in range(1, tentativas + 1):
+        try:
+            return estruturado.invoke([("system", sistema), ("human", usuario)])
+        except Exception as erro:  # formato inválido, 503, timeout
+            ultimo_erro = erro
+            if tentativa < tentativas:
+                time.sleep(5 * tentativa)
+    raise RuntimeError(f"Falha na geração após {tentativas} tentativas: {ultimo_erro}")
 
 
 def responder(pergunta: str, evidencias: list[Evidencia]) -> Resposta:
     """Contrato principal: gera a resposta fundamentada nas evidências."""
     contexto, mapa = montar_contexto(evidencias)
-    if USE_MOCK:
+    if GEN_MOCK:
         texto = (
             "Resposta de exemplo (modo mock). Os clientes relatam atrasos na entrega [R1][R3] "
             "e pedidos entregues de forma parcial [R2]."
         )
     else:
-        texto = chamar_llm(PROMPT_SISTEMA, f"{contexto}\n\nPergunta: {pergunta}")
+        saida = chamar_llm(PROMPT_SISTEMA, f"{contexto}\n\nPergunta: {pergunta}")
+        # LIMITAÇÃO até a T22: saida.pode_responder ainda não é usado. Se o modelo
+        # sinalizar que não pode responder, o texto chega à interface com recusada=False.
+        texto = saida.texto
     citacoes = validar_citacoes(texto, mapa)
     return Resposta(texto=texto, citacoes=citacoes, evidencias=evidencias)
