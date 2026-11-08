@@ -41,13 +41,19 @@ class Evidencia:
 
     review_id: str
     texto: str
-    score: float                      # relevância (maior = mais relevante)
+    score: float                      # relevância final (CE/sigmoid; maior = mais relevante)
     review_score: Optional[int] = None
     categoria: Optional[str] = None
     data_compra: Optional[str] = None
     dias_atraso: Optional[float] = None
     estado: Optional[str] = None
     tema: Optional[str] = None
+    # Extras de diagnóstico (buscar(..., detalhado=True); T15). Opcionais — contrato dia 1 intacto.
+    score_rrf: Optional[float] = None
+    score_bm25: Optional[float] = None
+    score_vetorial: Optional[float] = None
+    rank_bm25: Optional[int] = None       # 1-based; None se não entrou no top-N lexical
+    rank_vetorial: Optional[int] = None   # 1-based; None se não entrou no top-N vetorial
 
 
 @dataclass

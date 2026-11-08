@@ -157,8 +157,16 @@ _TODO (Pessoa B e C): descrever e justificar_
 
 ## Tratamento de perguntas sem evidência
 
-_TODO (Pessoa B): descrever as três situações (fora de escopo, sem evidência, evidência
-insuficiente) e como o limiar foi calibrado._
+Três situações em `src/guardrails.py`:
+
+1. **Fora de escopo** — `processar_pergunta` classifica `tipo=fora_de_escopo` (T11); não depende do limiar.
+2. **Sem evidência** — nenhuma evidência com `score >= LIMIAR_RELEVANCIA`.
+3. **Evidência insuficiente** — há evidências acima do limiar, mas menos que `MIN_EVIDENCIAS` (resposta parcial).
+
+**Limiar (`LIMIAR_RELEVANCIA=0.5`):** aplica-se ao score do cross-encoder (sigmoid). Calibrado na T15 com
+planilha de pares pergunta–evidência (`eval/gerar_rotulos_t15.py` + rótulos + `eval/calibrar_limiar.py`).
+No grid testado, `0.5` maximizou (úteis retidos − inúteis retidos); limiares ≥ `0.55` começaram a zerar
+evidências em perguntas que deveriam responder. Re-rotule a planilha e rode de novo se quiser refinar.
 
 ## Avaliação
 
@@ -279,7 +287,7 @@ print([(e.review_score, e.texto[:50]) for e in a[:3]])
 ### T14 — Reranker cross-encoder (Pessoa B)
 
 Após a híbrida (aula02: BM25 + vetorial + RRF), um **cross-encoder** (`RERANKER_MODEL`) reordena o pool
-(`TOP_K_CANDIDATOS`) e corta em `TOP_K_FINAL`. O score final é `sigmoid(logit)` ≈`(0, 1]` (calibração do limiar = T15).
+(`TOP_K_CANDIDATOS`) e corta em `TOP_K_FINAL`. O score final é `sigmoid(logit)` ≈`(0, 1]`.
 
 **Verificar** (`USE_MOCK=false`; 1ª execução pode baixar o modelo):
 
@@ -291,6 +299,22 @@ print(len(evs), [round(e.score, 3) for e in evs[:5]])
 print(evs[0].texto[:100])
 "
 ```
+
+### T15 — Calibrar limiar (Pessoa B)
+
+1. Gerar planilha (pool `TOP_K_CANDIDATOS`, scores CE/RRF/BM25/vetorial; 1 aba por pergunta):
+   ```bash
+   USE_MOCK=false python -m eval.gerar_rotulos_t15
+   ```
+2. Preencher a coluna `relevante` (`sim`/`nao`) em cada aba `P0x`.
+3. Sugerir limiar (e opcionalmente gravar em `.env.example` / default do config):
+   ```bash
+   python -m eval.calibrar_limiar
+   python -m eval.calibrar_limiar --aplicar
+   ```
+
+`buscar(..., detalhado=True)` preenche os scores intermediários só para diagnóstico/planilha;
+o pipeline usa `score` (CE) e `LIMIAR_RELEVANCIA=0.5`.
 
 ## Principais decisões técnicas
 
