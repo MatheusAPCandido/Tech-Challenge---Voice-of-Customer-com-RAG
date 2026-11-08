@@ -1,9 +1,11 @@
-"""Avaliação da solução (Pessoa B — T17, T28).
+"""Avaliação T17a — recusa correta (pipeline). Precisão@k: eval.precisao_k. Fidelidade: T17b.
 
-Uso:
-    python -m eval.run_eval
+Uso (busca real, geração mock — sem Gemini):
+    USE_MOCK=false GEN_MOCK=true HF_HUB_OFFLINE=1 python -m eval.run_eval
 
-Gera eval/resultados.csv com a resposta de cada pergunta para rotulagem e métricas.
+JUDGE_ENABLED default false (reprodutível). true só se quiser medir o gate Ollama (ex. P09).
+
+Gera eval/resultados.csv.
 """
 
 from __future__ import annotations
@@ -22,22 +24,42 @@ def rodar() -> pd.DataFrame:
     linhas = []
     for _, p in perguntas.iterrows():
         r = perguntar(p["pergunta"])
+        esperado = str(p["esperado"]).strip()
         linhas.append({
             "id": p["id"],
             "tipo": p["tipo"],
-            "esperado": p["esperado"],
+            "esperado": esperado,
             "recusou": r.recusada,
-            "recusa_correta": r.recusada == (p["esperado"] == "recusar"),
+            "motivo_recusa": r.motivo_recusa or "",
+            "recusa_correta": r.recusada == (esperado == "recusar"),
             "n_evidencias": len(r.evidencias),
             "n_citacoes": len(r.citacoes),
             "resposta": r.texto,
-            # TODO (T17): rotular manualmente a relevância de cada evidência → precisão@k
-            # TODO (T17): fidelidade (afirmações com suporte / total), manual ou RAGAS
+            # T17a: precisão@k → python -m eval.precisao_k
+            # T17b: fidelidade (afirmações com suporte), manual ou RAGAS — precisa geração real
         })
     df = pd.DataFrame(linhas)
     df.to_csv(PASTA / "resultados.csv", index=False)
-    print(df[["id", "tipo", "recusou", "recusa_correta", "n_citacoes"]].to_string(index=False))
+
+    cols = ["id", "tipo", "esperado", "recusou", "motivo_recusa", "recusa_correta", "n_citacoes"]
+    print(df[cols].to_string(index=False))
     print(f"\nTaxa de recusa correta: {df['recusa_correta'].mean():.0%}")
+
+    falhas = df.loc[~df["recusa_correta"], "id"].tolist()
+    if falhas:
+        print(f"Falhas ({len(falhas)}): {', '.join(str(i) for i in falhas)}")
+    else:
+        print("Falhas: nenhuma")
+
+    # Diagnóstico curto: esperado × motivo (útil P07/P09 vs over-refusal)
+    diag = (
+        df.assign(motivo=df["motivo_recusa"].replace("", "(respondeu)"))
+        .groupby(["esperado", "motivo"], dropna=False)
+        .size()
+        .reset_index(name="n")
+    )
+    print("\nEsperado × motivo_recusa:")
+    print(diag.to_string(index=False))
     return df
 
 
