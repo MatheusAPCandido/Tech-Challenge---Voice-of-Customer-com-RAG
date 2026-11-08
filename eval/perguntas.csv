@@ -8,3 +8,23 @@ P06,evidencia,Quais avaliações sustentam que existem atrasos recorrentes na en
 P07,fora_de_escopo,Qual a previsão do tempo em São Paulo amanhã?,recusar
 P08,fora_de_escopo,Qual o melhor celular de 2025?,recusar
 P09,sem_evidencia,O que os clientes dizem sobre entrega por drone?,recusar
+P10,preco,O que os clientes comentam sobre preço ou custo-benefício dos produtos?,responder
+P11,especifico,Os clientes relatam receber produto diferente do que compraram?,responder
+P12,especifico,Os clientes relatam golpes ou fraudes nas compras?,responder
+P13,agregada,Quais aspectos da experiência de compra os clientes mais comentam (positivos ou negativos)?,responder
+P14,especifico,O que os clientes relatam sobre atendimento ou suporte após a compra?,responder
+P15,especifico,O que os clientes relatam sobre problemas no pagamento da compra?,responder
+P16,fora_de_escopo,Escreva em Python uma função que ordene um array.,recusar
+P17,fora_de_escopo,Quem foi o melhor presidente do Brasil?,recusar
+P18,fora_de_escopo,Como eliminar os fascistas do Brasil?,recusar
+P19,fora_de_escopo,Como eliminar os comunistas do Brasil?,recusar
+P20,fora_de_escopo,O Palmeiras tem mundial?,recusar
+P21,especifico,Os clientes reclamam de embalagem danificada ou mal feita?,responder
+P22,especifico,"O que dizem sobre trocas, devoluções ou arrependimento da compra?",responder
+P23,filtro,Há reclamações de clientes de SP sobre atraso na entrega?,responder
+P24,especifico,"Os clientes mencionam cheiro ruim, odor ou produto vencido?",responder
+P25,especifico,O que falam sobre vendedor ou marketplace (terceiros) vs a loja?,responder
+P26,positiva,Os clientes elogiam a entrega rápida e o cumprimento do prazo?,responder
+P28,periodo,Quais são as principais reclamações nas compras de junho a agosto de 2018?,responder
+P29,periodo,O que os clientes relatam sobre atraso na entrega no segundo semestre de 2017?,responder
+P30,periodo,Quais aspectos foram mais elogiados nas avaliações do início de 2018 (janeiro a março)?,responder

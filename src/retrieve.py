@@ -434,8 +434,8 @@ def _busca_vetorial(
     n: int,
     where: dict | None = None,
     ids_ok: set[str] | None = None,
-) -> list[str]:
-    """Top-n ids por similaridade de cosseno no Chroma (ordem = ranking)."""
+) -> list[tuple[str, float]]:
+    """Top-n (id, similaridade) por cosseno no Chroma; similaridade = 1 - distance."""
     if ids_ok is not None and not ids_ok:
         return []
 
@@ -456,11 +456,20 @@ def _busca_vetorial(
         kwargs["where"] = where
     resultado = rec["colecao"].query(**kwargs)
     ids = (resultado.get("ids") or [[]])[0]
-    return [str(i) for i in ids]
+    dists = (resultado.get("distances") or [[]])[0]
+    out: list[tuple[str, float]] = []
+    for i, rid in enumerate(ids):
+        dist = float(dists[i]) if i < len(dists) else 0.0
+        out.append((str(rid), 1.0 - dist))
+    return out
 
 
-def _busca_bm25(pergunta: str, n: int, ids_ok: set[str] | None = None) -> list[str]:
-    """Top-n ids por BM25; lista vazia se só stopwords, score ≤ 0 ou recorte vazio."""
+def _busca_bm25(
+    pergunta: str,
+    n: int,
+    ids_ok: set[str] | None = None,
+) -> list[tuple[str, float]]:
+    """Top-n (id, score_bm25); vazio se só stopwords, score ≤ 0 ou recorte vazio."""
     if ids_ok is not None and not ids_ok:
         return []
 
@@ -479,7 +488,7 @@ def _busca_bm25(pergunta: str, n: int, ids_ok: set[str] | None = None) -> list[s
         ),
         key=lambda par: (-par[1], par[0]),
     )
-    return [rid for rid, _ in ordenados[:n]]
+    return ordenados[:n]
 
 def _fundir_rrf(rankings: list[list[str]], k: int) -> list[tuple[str, float]]:
     """RRF + normalização para ~[0, 1]. Empate: review_id asc."""
@@ -507,7 +516,18 @@ def _meta_opcional(meta: dict, chave: str):
     return valor
 
 
-def _evidencia_de_chroma(review_id: str, texto: str, score: float, meta: dict | None) -> Evidencia:
+def _evidencia_de_chroma(
+    review_id: str,
+    texto: str,
+    score: float,
+    meta: dict | None,
+    *,
+    score_rrf: float | None = None,
+    score_bm25: float | None = None,
+    score_vetorial: float | None = None,
+    rank_bm25: int | None = None,
+    rank_vetorial: int | None = None,
+) -> Evidencia:
     meta = meta or {}
     review_score = _meta_opcional(meta, "review_score")
     dias_atraso = _meta_opcional(meta, "dias_atraso")
@@ -521,6 +541,11 @@ def _evidencia_de_chroma(review_id: str, texto: str, score: float, meta: dict | 
         dias_atraso=float(dias_atraso) if dias_atraso is not None else None,
         estado=_meta_opcional(meta, "estado"),
         tema=_meta_opcional(meta, "tema") or None,
+        score_rrf=score_rrf,
+        score_bm25=score_bm25,
+        score_vetorial=score_vetorial,
+        rank_bm25=rank_bm25,
+        rank_vetorial=rank_vetorial,
     )
 
 
@@ -561,12 +586,19 @@ def _rerank(pergunta: str, candidatos: list[Evidencia], k: int) -> list[Evidenci
     return reranked[:k]
 
 
-def buscar(pergunta: str, filtros: Optional[dict] = None, k: int = TOP_K_FINAL) -> list[Evidencia]:
+def buscar(
+    pergunta: str,
+    filtros: Optional[dict] = None,
+    k: int = TOP_K_FINAL,
+    *,
+    detalhado: bool = False,
+) -> list[Evidencia]:
     """Contrato principal: devolve as k evidências mais relevantes, ordenadas por score.
 
     T12 — busca vetorial + BM25 + RRF (pool de até TOP_K_CANDIDATOS; RRF só ordena o pool).
     T13 — filtros de metadados (FILTROS_SUPORTADOS) no Chroma e no mesmo recorte do BM25.
     T14 — cross-encoder (RERANKER_MODEL); score final = sigmoid(logit); corta em k.
+    T15 — detalhado=True preenche score_rrf/bm25/vetorial e ranks (diagnóstico / planilha).
     """
     filtros = _sanitizar_filtros(filtros or {})
     if USE_MOCK:
@@ -578,14 +610,20 @@ def buscar(pergunta: str, filtros: Optional[dict] = None, k: int = TOP_K_FINAL) 
     where = _montar_where(filtros)
     ids_ok = _ids_permitidos(where)
 
-    ids_vec = _busca_vetorial(pergunta, n, where=where, ids_ok=ids_ok)
-    ids_bm25 = _busca_bm25(pergunta, n, ids_ok=ids_ok)
+    hits_vec = _busca_vetorial(pergunta, n, where=where, ids_ok=ids_ok)
+    hits_bm25 = _busca_bm25(pergunta, n, ids_ok=ids_ok)
+    ids_vec = [rid for rid, _ in hits_vec]
+    ids_bm25 = [rid for rid, _ in hits_bm25]
     fundidos = _fundir_rrf([ids_vec, ids_bm25], n)
     if not fundidos:
         return []
 
     ids_pool = [rid for rid, _ in fundidos]
     scores_rrf = {rid: score for rid, score in fundidos}
+    score_vet = {rid: s for rid, s in hits_vec}
+    score_bm = {rid: s for rid, s in hits_bm25}
+    rank_vet = {rid: i for i, (rid, _) in enumerate(hits_vec, start=1)}
+    rank_bm = {rid: i for i, (rid, _) in enumerate(hits_bm25, start=1)}
 
     rec = _recursos_indice()
     bruto = rec["colecao"].get(ids=ids_pool, include=["documents", "metadatas"])
@@ -600,5 +638,20 @@ def buscar(pergunta: str, filtros: Optional[dict] = None, k: int = TOP_K_FINAL) 
     candidatos: list[Evidencia] = []
     for rid in ids_pool:
         texto, meta = por_id.get(rid, ("", {}))
-        candidatos.append(_evidencia_de_chroma(rid, texto, scores_rrf[rid], meta))
+        if detalhado:
+            candidatos.append(
+                _evidencia_de_chroma(
+                    rid,
+                    texto,
+                    scores_rrf[rid],
+                    meta,
+                    score_rrf=scores_rrf[rid],
+                    score_bm25=score_bm.get(rid),
+                    score_vetorial=score_vet.get(rid),
+                    rank_bm25=rank_bm.get(rid),
+                    rank_vetorial=rank_vet.get(rid),
+                )
+            )
+        else:
+            candidatos.append(_evidencia_de_chroma(rid, texto, scores_rrf[rid], meta))
     return _rerank(pergunta, candidatos, k)

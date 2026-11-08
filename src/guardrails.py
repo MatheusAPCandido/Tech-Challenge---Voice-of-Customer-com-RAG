@@ -16,7 +16,7 @@ MSG_INSUFICIENTE = "Encontrei poucas avaliações sobre esse tema; a resposta ab
 def avaliar_evidencias(consulta: ConsultaProcessada, evidencias: list[Evidencia]) -> Veredito:
     """Decide se o pipeline pode gerar uma resposta.
 
-    TODO (T15): calibrar LIMIAR_RELEVANCIA com pares rotulados e documentar no README.
+    Limiar calibrado na T15 (score do cross-encoder); ver README e eval/calibrar_limiar.py.
     """
     if consulta.tipo == "fora_de_escopo":
         return Veredito(False, "fora_de_escopo", MSG_FORA_DE_ESCOPO)
