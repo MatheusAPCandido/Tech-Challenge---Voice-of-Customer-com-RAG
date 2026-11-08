@@ -40,5 +40,7 @@ TOP_K_CANDIDATOS = int(os.getenv("TOP_K_CANDIDATOS", "40"))
 TOP_K_FINAL = int(os.getenv("TOP_K_FINAL", "10"))
 LIMIAR_RELEVANCIA = float(os.getenv("LIMIAR_RELEVANCIA", "0.5"))
 MIN_EVIDENCIAS = int(os.getenv("MIN_EVIDENCIAS", "3"))
+# Gate de suficiência pós-limiar via Ollama (≠ T17 métricas / RAGAS). Default off.
+JUDGE_ENABLED = _bool("JUDGE_ENABLED", "false")
 
 COLECAO_CHROMA = "reviews_olist"

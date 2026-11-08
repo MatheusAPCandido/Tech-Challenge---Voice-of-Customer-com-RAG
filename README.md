@@ -225,13 +225,37 @@ Com `USE_MOCK=true` no `.env`, a interface roda com dados falsos, sem precisar d
 python -m eval.run_eval
 ```
 
+### 7. Testes (pytest)
+
+Suíte unitária rápida (sem índice Chroma, embeddings, reranker ou LLM de geração):
+
+```bash
+pip install -r requirements.txt -r requirements-dev.txt
+python -m pytest
+```
+
+Por padrão o marker `integration` fica de fora (`addopts = -m "not integration"`).
+
+Smoke T16 com índice real (busca + limiar; geração em mock; judge off):
+
+```bash
+USE_MOCK=false GEN_MOCK=true HF_HUB_OFFLINE=1 python -m pytest -m integration -q
+```
+
+Gate de suficiência Ollama (P09; skip limpo se daemon off):
+
+```bash
+USE_MOCK=false GEN_MOCK=true JUDGE_ENABLED=true HF_HUB_OFFLINE=1 \
+  python -m pytest -m integration -q -k p09_com_judge
+```
+
 ## Etapas Intermediárias Finalizadas
 
 ### T11 — Transformação da pergunta (Pessoa B)
 
 `processar_pergunta()` em `src/retrieve.py` classifica a pergunta (`pontual` / `agregada` / `fora_de_escopo`),
 extrai filtros e monta a consulta antes da busca. Com `LLM_PROVIDER=ollama` usa JSON via Ollama
-(`qwen2.5` recomendado); sem Ollama, usa regras locais.
+(`qwen2.5` recomendado); sem Ollama, usa regras locais (`_OFFTOPIC` cobre P07/P08 e P16–P20 do eval).
 
 **Verificar:**
 
@@ -315,6 +339,40 @@ print(evs[0].texto[:100])
 
 `buscar(..., detalhado=True)` preenche os scores intermediários só para diagnóstico/planilha;
 o pipeline usa `score` (CE) e `LIMIAR_RELEVANCIA=0.5`.
+
+### T16 — Guardrails: três situações de recusa (Pessoa B)
+
+`avaliar_evidencias` + `perguntar` cobrem:
+
+1. **Fora de escopo** — T11 (`_OFFTOPIC` nas regras, sem âncora VoC); não busca.
+2. **Sem evidência** — busca rodou; nada com `score >= LIMIAR_RELEVANCIA` (ou judge opcional).
+3. **Evidência insuficiente** — poucas acima do limiar; responde com aviso (coberto nos unitários).
+
+**Gate de suficiência (`JUDGE_ENABLED`, default `false`):** depois do limiar CE, se houver relevantes,
+Ollama responde JSON `{"suficiente": bool}` — se `false`, recusa com `sem_evidencia`. Falha do
+Ollama → mantém o veredito do limiar. Usa `OLLAMA_HOST` + `LLM_MODEL` (não Gemini/`GEN_*`).
+`filtrar_relevantes` continua só por limiar CE (o judge não reordena nem filtra a lista).
+
+Isto **não** é a T17 (precisão@k / fidelidade / RAGAS): é um interruptor no pipeline de produção.
+
+**Verificar:**
+
+```bash
+# unitários (inclui Vereditos + mocks do judge; conftest força JUDGE off)
+python -m pytest -q
+
+# smoke com índice, judge off (P07 fora_de_escopo, P01 responde; P09 pode xfail — limiar/CE)
+USE_MOCK=false GEN_MOCK=true HF_HUB_OFFLINE=1 python -m pytest -m integration -q
+
+# P09 com gate (precisa ollama serve; senão skip)
+USE_MOCK=false GEN_MOCK=true JUDGE_ENABLED=true HF_HUB_OFFLINE=1 \
+  python -m pytest -m integration -q -k p09_com_judge
+```
+
+**Nota P09 (drone):** a pergunta tem âncora `entrega`, então permanece no escopo. Sem judge, o
+limiar/CE pode passar reviews genéricas de entrega (`xfail` documenta o débito). Com
+`JUDGE_ENABLED=true` + Ollama, o smoke `p09_com_judge` espera `sem_evidencia`. Não marcar
+drone como `_OFFTOPIC`.
 
 ## Principais decisões técnicas
 
