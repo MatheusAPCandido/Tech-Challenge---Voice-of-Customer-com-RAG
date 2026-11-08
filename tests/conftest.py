@@ -13,6 +13,13 @@ def _forcar_t11_regras(monkeypatch):
     monkeypatch.setattr("src.retrieve.LLM_PROVIDER", "regras")
 
 
+@pytest.fixture(autouse=True)
+def _forcar_judge_off(monkeypatch):
+    """Suíte default nunca fala com Ollama do gate (mesmo com JUDGE_ENABLED no .env)."""
+    monkeypatch.setattr("src.config.JUDGE_ENABLED", False)
+    monkeypatch.setattr("src.guardrails.JUDGE_ENABLED", False)
+
+
 @pytest.fixture
 def evidencia():
     def _fazer(

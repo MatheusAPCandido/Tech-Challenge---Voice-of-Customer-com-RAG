@@ -92,3 +92,25 @@ def test_ok_filtra_antes_de_responder(monkeypatch):
     assert r.recusada is False
     assert r.texto == "ok mock"
     assert r.confianca == "media"
+
+
+def test_pipeline_judge_recusa_sem_evidencia(monkeypatch):
+    """P09-like: limiar passa, judge diz insuficiente → sem_evidencia."""
+    monkeypatch.setattr("src.guardrails.JUDGE_ENABLED", True)
+    monkeypatch.setattr(
+        "src.guardrails.chat_json",
+        lambda *_a, **_k: {"suficiente": False, "motivo": "sem drone"},
+    )
+    monkeypatch.setattr("src.pipeline.processar_pergunta", lambda q: _consulta())
+    monkeypatch.setattr(
+        "src.pipeline.buscar",
+        lambda *a, **k: [_ev(0.9, "a"), _ev(0.8, "b"), _ev(0.7, "c")],
+    )
+
+    def _nao_gerar(*_a, **_k):
+        raise AssertionError("responder não deve rodar após recusa do judge")
+
+    monkeypatch.setattr("src.pipeline.responder", _nao_gerar)
+    r = perguntar("entrega por drone")
+    assert r.recusada is True
+    assert r.motivo_recusa == "sem_evidencia"

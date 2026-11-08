@@ -5,7 +5,6 @@ Tarefas: T11 (transformação), T12 (busca híbrida + RRF), T13 (filtros), T14 (
 
 from __future__ import annotations
 
-import json
 import logging
 import math
 import re
@@ -14,10 +13,7 @@ from dataclasses import replace
 from typing import Optional
 
 from src.config import (
-    LLM_MODEL,
     LLM_PROVIDER,
-    OLLAMA_HOST,
-    OLLAMA_TIMEOUT_S,
     RERANKER_MODEL,
     TOP_K_CANDIDATOS,
     TOP_K_FINAL,
@@ -33,6 +29,7 @@ from src.index import (
     preparar_consulta,
     tokenizar,
 )
+from src.ollama_client import chat_json
 from src.schema import FILTROS_SUPORTADOS, ConsultaProcessada, Evidencia
 
 logger = logging.getLogger(__name__)
@@ -144,9 +141,6 @@ Pergunta: Quais são os principais problemas relatados pelos clientes?
 Pergunta: Qual a previsão do tempo em São Paulo amanhã?
 {"consulta":"previsão do tempo","filtros":{},"tipo":"fora_de_escopo"}
 """
-
-_warned_ollama_fallback = False
-
 
 def _texto_norm(s: str) -> str:
     """casefold + sem acentos — só para matching de regras."""
@@ -263,48 +257,14 @@ def _processar_pergunta_regras(pergunta: str) -> ConsultaProcessada:
     )
 
 
-def _strip_cercas_json(texto: str) -> str:
-    """Remove cercas ```json ... ``` como na aula03 de prompt."""
-    bruto = (texto or "").strip()
-    bruto = re.sub(r"^```(?:json)?\s*", "", bruto, flags=re.IGNORECASE)
-    bruto = re.sub(r"\s*```$", "", bruto)
-    return bruto.strip()
-
-
 def _chamar_ollama_json(pergunta: str) -> dict | None:
-    """Chamada curta ao Ollama; None em qualquer falha (sem crash)."""
-    global _warned_ollama_fallback
-    try:
-        import ollama  # lazy: pacote ausente → fallback regras
-    except ImportError:
-        if not _warned_ollama_fallback:
-            logger.warning("Pacote ollama ausente; T11 usa regras.")
-            _warned_ollama_fallback = True
+    """T11b: JSON via Ollama; None se falhar ou payload sem chaves de negócio."""
+    dados = chat_json(PROMPT_T11_SISTEMA, pergunta, num_predict=256)
+    if dados is None:
         return None
-
-    try:
-        client = ollama.Client(host=OLLAMA_HOST, timeout=OLLAMA_TIMEOUT_S)
-        resposta = client.chat(
-            model=LLM_MODEL,
-            messages=[
-                {"role": "system", "content": PROMPT_T11_SISTEMA},
-                {"role": "user", "content": pergunta},
-            ],
-            format="json",
-            options={"temperature": 0, "num_predict": 256},
-        )
-        content = resposta["message"]["content"]
-        dados = json.loads(_strip_cercas_json(content))
-        if not isinstance(dados, dict):
-            return None
-        if "consulta" not in dados and "tipo" not in dados and "filtros" not in dados:
-            return None
-        return dados
-    except Exception as exc:
-        if not _warned_ollama_fallback:
-            logger.warning("Ollama indisponível para T11b (%s); usando regras.", type(exc).__name__)
-            _warned_ollama_fallback = True
+    if "consulta" not in dados and "tipo" not in dados and "filtros" not in dados:
         return None
+    return dados
 
 
 def _consulta_de_llm(dados: dict, pergunta: str) -> ConsultaProcessada:

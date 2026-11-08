@@ -236,10 +236,17 @@ python -m pytest
 
 Por padrão o marker `integration` fica de fora (`addopts = -m "not integration"`).
 
-Smoke T16 com índice real (busca + limiar; geração em mock):
+Smoke T16 com índice real (busca + limiar; geração em mock; judge off):
 
 ```bash
 USE_MOCK=false GEN_MOCK=true HF_HUB_OFFLINE=1 python -m pytest -m integration -q
+```
+
+Gate de suficiência Ollama (P09; skip limpo se daemon off):
+
+```bash
+USE_MOCK=false GEN_MOCK=true JUDGE_ENABLED=true HF_HUB_OFFLINE=1 \
+  python -m pytest -m integration -q -k p09_com_judge
 ```
 
 ## Etapas Intermediárias Finalizadas
@@ -338,22 +345,34 @@ o pipeline usa `score` (CE) e `LIMIAR_RELEVANCIA=0.5`.
 `avaliar_evidencias` + `perguntar` cobrem:
 
 1. **Fora de escopo** — T11 (`_OFFTOPIC` nas regras, sem âncora VoC); não busca.
-2. **Sem evidência** — busca rodou; nada com `score >= LIMIAR_RELEVANCIA`.
+2. **Sem evidência** — busca rodou; nada com `score >= LIMIAR_RELEVANCIA` (ou judge opcional).
 3. **Evidência insuficiente** — poucas acima do limiar; responde com aviso (coberto nos unitários).
+
+**Gate de suficiência (`JUDGE_ENABLED`, default `false`):** depois do limiar CE, se houver relevantes,
+Ollama responde JSON `{"suficiente": bool}` — se `false`, recusa com `sem_evidencia`. Falha do
+Ollama → mantém o veredito do limiar. Usa `OLLAMA_HOST` + `LLM_MODEL` (não Gemini/`GEN_*`).
+`filtrar_relevantes` continua só por limiar CE (o judge não reordena nem filtra a lista).
+
+Isto **não** é a T17 (precisão@k / fidelidade / RAGAS): é um interruptor no pipeline de produção.
 
 **Verificar:**
 
 ```bash
-# unitários (inclui os 4 Vereditos + P16–P20 fora_de_escopo via regras)
+# unitários (inclui Vereditos + mocks do judge; conftest força JUDGE off)
 python -m pytest -q
 
-# smoke com índice (P07 fora_de_escopo, P01 responde; P09 pode xfail — limiar/CE)
+# smoke com índice, judge off (P07 fora_de_escopo, P01 responde; P09 pode xfail — limiar/CE)
 USE_MOCK=false GEN_MOCK=true HF_HUB_OFFLINE=1 python -m pytest -m integration -q
+
+# P09 com gate (precisa ollama serve; senão skip)
+USE_MOCK=false GEN_MOCK=true JUDGE_ENABLED=true HF_HUB_OFFLINE=1 \
+  python -m pytest -m integration -q -k p09_com_judge
 ```
 
-**Nota P09 (drone):** a pergunta tem âncora `entrega`, então permanece no escopo. O limiar atual
-pode deixar o CE passar reviews genéricas de entrega; isso é limite de retrieval/limiar, não
-motivo para marcar drone como `_OFFTOPIC`.
+**Nota P09 (drone):** a pergunta tem âncora `entrega`, então permanece no escopo. Sem judge, o
+limiar/CE pode passar reviews genéricas de entrega (`xfail` documenta o débito). Com
+`JUDGE_ENABLED=true` + Ollama, o smoke `p09_com_judge` espera `sem_evidencia`. Não marcar
+drone como `_OFFTOPIC`.
 
 ## Principais decisões técnicas
 

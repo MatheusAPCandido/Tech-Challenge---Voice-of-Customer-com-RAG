@@ -1,7 +1,11 @@
 """Smoke T16 com índice real — busca + limiar; geração em mock (sem Gemini).
 
-Rodar:
+Rodar (judge off, estável):
     USE_MOCK=false GEN_MOCK=true HF_HUB_OFFLINE=1 python -m pytest -m integration -q
+
+Com gate Ollama (P09):
+    USE_MOCK=false GEN_MOCK=true JUDGE_ENABLED=true HF_HUB_OFFLINE=1 \\
+      python -m pytest -m integration -q -k p09_com_judge
 """
 
 from __future__ import annotations
@@ -32,6 +36,21 @@ def _indice_ok() -> bool:
         return False
 
 
+def _ollama_disponivel() -> bool:
+    """Ping leve: chat_json responde dict ou None se daemon/pacote ausente."""
+    try:
+        from src.ollama_client import chat_json
+
+        dados = chat_json(
+            'Responda só JSON: {"ok": true}',
+            "ping",
+            num_predict=32,
+        )
+        return isinstance(dados, dict)
+    except Exception:
+        return False
+
+
 pytestmark = [
     pytest.mark.integration,
     pytest.mark.skipif(not _indice_ok(), reason="índice Chroma/BM25 ausente ou vazio"),
@@ -55,7 +74,7 @@ def test_smoke_p09_sem_evidencia():
 
     Se o CE pontuar alto em reviews genéricas de entrega, o limiar atual deixa
     responder — limite documentado em context/melhorias.md (não marcar drone
-    como _OFFTOPIC).
+    como _OFFTOPIC). Judge off (conftest): débito permanece como xfail.
     """
     r = perguntar(P09)
     assert r.motivo_recusa != "fora_de_escopo"
@@ -72,4 +91,29 @@ def test_smoke_p01_responde():
     assert r.motivo_recusa != "fora_de_escopo"
     assert r.recusada is False, (
         f"P01 deveria responder; got motivo={r.motivo_recusa!r} texto={r.texto[:120]!r}"
+    )
+
+
+@pytest.fixture
+def _judge_on(monkeypatch):
+    monkeypatch.setattr("src.config.JUDGE_ENABLED", True)
+    monkeypatch.setattr("src.guardrails.JUDGE_ENABLED", True)
+
+
+@pytest.mark.skipif(not _ollama_disponivel(), reason="Ollama indisponível para gate de suficiência")
+def test_smoke_p09_com_judge(_judge_on):
+    """Com JUDGE_ENABLED, reviews genéricas de entrega não bastam para 'drone'."""
+    r = perguntar(P09)
+    assert r.motivo_recusa != "fora_de_escopo"
+    assert r.recusada is True
+    assert r.motivo_recusa == "sem_evidencia"
+
+
+@pytest.mark.skipif(not _ollama_disponivel(), reason="Ollama indisponível para gate de suficiência")
+def test_smoke_p01_com_judge(_judge_on):
+    """Sanidade: judge não deve over-recusar P01 (produto quebrado)."""
+    r = perguntar(P01)
+    assert r.motivo_recusa != "fora_de_escopo"
+    assert r.recusada is False, (
+        f"P01+judge over-refusal; motivo={r.motivo_recusa!r} texto={r.texto[:120]!r}"
     )
