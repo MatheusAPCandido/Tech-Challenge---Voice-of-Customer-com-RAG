@@ -225,6 +225,19 @@ Com `USE_MOCK=true` no `.env`, a interface roda com dados falsos, sem precisar d
 python -m eval.run_eval
 ```
 
+### 7. Testes (pytest)
+
+Suíte unitária rápida (sem índice Chroma, embeddings, reranker ou LLM):
+
+```bash
+pip install -r requirements.txt -r requirements-dev.txt
+python -m pytest
+```
+
+Os testes cobrem contrato (`schema`), helpers de índice, RRF/filtros/T11 regras, citações e os
+quatro caminhos de `guardrails` / `perguntar` (com mocks). Marker `integration` fica reservado
+para testes futuros que precisem de índice ou rede.
+
 ## Etapas Intermediárias Finalizadas
 
 ### T11 — Transformação da pergunta (Pessoa B)
