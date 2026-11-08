@@ -53,7 +53,9 @@ Consulta (a cada pergunta)
 ├── data/                    # CSVs do Kaggle (não versionados)
 ├── eval/
 │   ├── perguntas.csv        # conjunto de perguntas de teste
-│   └── run_eval.py          # métricas de avaliação
+│   ├── run_eval.py          # T17a: taxa de recusa correta
+│   ├── precisao_k.py        # T17a: precisão@k (rótulos T15)
+│   └── rotulos_io.py        # leitura compartilhada da planilha de rótulos
 ├── notebooks/01_eda.ipynb   # análise exploratória
 └── src/
     ├── config.py            # configurações e variáveis de ambiente
@@ -170,8 +172,34 @@ evidências em perguntas que deveriam responder. Re-rotule a planilha e rode de 
 
 ## Avaliação
 
-_TODO (Pessoa B): tabela de resultados (precisão@k, fidelidade, taxa de recusa correta)
-comparando as variações testadas._
+**T17a** (sem geração Gemini): recusa correta + precisão@k.  
+**T17b** (depois): fidelidade / RAGAS — precisa `GEN_MOCK=false` e chave Gemini.
+
+### Recusa correta
+
+Compara `esperado` em `eval/perguntas.csv` (`responder` / `recusar`) com `Resposta.recusada`.
+O motivo (`fora_de_escopo`, `sem_evidencia`, …) é só diagnóstico — a métrica é binária.
+
+```bash
+USE_MOCK=false GEN_MOCK=true HF_HUB_OFFLINE=1 python -m eval.run_eval
+```
+
+`JUDGE_ENABLED` default `false` (reprodutível). Use `true` só se quiser incluir o gate Ollama
+(ex. P09). Gera `eval/resultados.csv` (local, gitignored).
+
+### Precisão@k
+
+Fraçāo de evidências marcadas `relevante=sim` entre as top-k da planilha T15 (macro-average
+por pergunta com ≥k rótulos). Fonte padrão: `eval/rotulos_t15_manual.xlsx` (não versionada;
+`eval/*.xlsx` no `.gitignore`).
+
+```bash
+python -m eval.precisao_k
+# ou: python -m eval.precisao_k --xlsx eval/rotulos_t15_manual.xlsx
+```
+
+Reporta macro precisão@5 e @10 e grava `eval/metricas_precisao.csv`. Perguntas sem rótulos
+suficientes (ex. P09 / P28–P30 incompletos) são omitidas da média.
 
 ## Exemplos de perguntas e respostas
 
@@ -219,11 +247,14 @@ streamlit run app/streamlit_app.py
 
 Com `USE_MOCK=true` no `.env`, a interface roda com dados falsos, sem precisar da base pronta.
 
-### 6. Rodar a avaliação
+### 6. Rodar a avaliação (T17a)
 
 ```bash
-python -m eval.run_eval
+USE_MOCK=false GEN_MOCK=true HF_HUB_OFFLINE=1 python -m eval.run_eval
+python -m eval.precisao_k
 ```
+
+Detalhes na seção [Avaliação](#avaliação). Fidelidade = T17b (geração real).
 
 ### 7. Testes (pytest)
 

@@ -14,8 +14,8 @@ import re
 from pathlib import Path
 
 import pandas as pd
-from openpyxl import load_workbook
 
+from eval.rotulos_io import ler_linhas_rotuladas
 from src.config import MIN_EVIDENCIAS
 
 PASTA = Path(__file__).resolve().parent
@@ -24,64 +24,19 @@ XLSX = PASTA / "rotulos_t15.xlsx"
 ENV_EXAMPLE = RAIZ / ".env.example"
 CONFIG = RAIZ / "src" / "config.py"
 
-HEADER_ROW = 4  # linha 1-indexada do openpyxl com nomes das colunas
-
-
-def _norm_relevante(val) -> str | None:
-    if val is None:
-        return None
-    s = str(val).strip().casefold()
-    if not s or s == "none":
-        return None
-    if s in {"sim", "s", "yes", "y", "1", "true", "relevante"}:
-        return "sim"
-    if s in {"nao", "não", "n", "no", "0", "false", "irrelevante"}:
-        return "nao"
-    return None
-
 
 def _ler_rotulos(caminho: Path = XLSX) -> tuple[pd.DataFrame, pd.DataFrame]:
-    if not caminho.exists():
-        raise SystemExit(f"Arquivo não encontrado: {caminho}. Rode python -m eval.gerar_rotulos_t15")
-
-    wb = load_workbook(caminho, read_only=True, data_only=True)
-    indice = pd.read_excel(caminho, sheet_name="indice")
-    linhas = []
-    for nome in wb.sheetnames:
-        if nome == "indice":
-            continue
-        ws = wb[nome]
-        rows = list(ws.iter_rows(min_row=HEADER_ROW, values_only=True))
-        if not rows:
-            continue
-        header = [str(c).strip() if c is not None else "" for c in rows[0]]
-        if "relevante" not in header or "score_ce" not in header:
-            continue
-        idx = {h: i for i, h in enumerate(header)}
-        for row in rows[1:]:
-            if row is None or all(c is None for c in row):
-                continue
-            rel = _norm_relevante(row[idx["relevante"]] if idx["relevante"] < len(row) else None)
-            if rel is None:
-                continue
-            score = row[idx["score_ce"]] if idx["score_ce"] < len(row) else None
-            if score is None:
-                continue
-            linhas.append(
-                {
-                    "id": nome,
-                    "score_ce": float(score),
-                    "relevante": rel,
-                    "review_id": row[idx["review_id"]] if "review_id" in idx else None,
-                }
-            )
-    wb.close()
-    if not linhas:
+    linhas = ler_linhas_rotuladas(caminho)
+    if "score_ce" not in linhas.columns or linhas["score_ce"].isna().all():
         raise SystemExit(
-            "Nenhuma linha com `relevante` preenchido. "
-            "Marque sim/nao nas abas P0x e rode de novo."
+            f"Planilha sem score_ce utilizável: {caminho}. "
+            "Regenere com python -m eval.gerar_rotulos_t15"
         )
-    return indice, pd.DataFrame(linhas)
+    linhas = linhas.dropna(subset=["score_ce"]).copy()
+    if linhas.empty:
+        raise SystemExit("Nenhuma linha com score_ce e relevante preenchidos.")
+    indice = pd.read_excel(caminho, sheet_name="indice")
+    return indice, linhas
 
 
 def _avaliar_limiar(df: pd.DataFrame, indice: pd.DataFrame, limiar: float) -> dict:
