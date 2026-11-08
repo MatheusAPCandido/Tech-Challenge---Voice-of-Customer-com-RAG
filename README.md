@@ -227,16 +227,20 @@ python -m eval.run_eval
 
 ### 7. Testes (pytest)
 
-Suíte unitária rápida (sem índice Chroma, embeddings, reranker ou LLM):
+Suíte unitária rápida (sem índice Chroma, embeddings, reranker ou LLM de geração):
 
 ```bash
 pip install -r requirements.txt -r requirements-dev.txt
 python -m pytest
 ```
 
-Os testes cobrem contrato (`schema`), helpers de índice, RRF/filtros/T11 regras, citações e os
-quatro caminhos de `guardrails` / `perguntar` (com mocks). Marker `integration` fica reservado
-para testes futuros que precisem de índice ou rede.
+Por padrão o marker `integration` fica de fora (`addopts = -m "not integration"`).
+
+Smoke T16 com índice real (busca + limiar; geração em mock):
+
+```bash
+USE_MOCK=false GEN_MOCK=true HF_HUB_OFFLINE=1 python -m pytest -m integration -q
+```
 
 ## Etapas Intermediárias Finalizadas
 
@@ -244,7 +248,7 @@ para testes futuros que precisem de índice ou rede.
 
 `processar_pergunta()` em `src/retrieve.py` classifica a pergunta (`pontual` / `agregada` / `fora_de_escopo`),
 extrai filtros e monta a consulta antes da busca. Com `LLM_PROVIDER=ollama` usa JSON via Ollama
-(`qwen2.5` recomendado); sem Ollama, usa regras locais.
+(`qwen2.5` recomendado); sem Ollama, usa regras locais (`_OFFTOPIC` cobre P07/P08 e P16–P20 do eval).
 
 **Verificar:**
 
@@ -328,6 +332,28 @@ print(evs[0].texto[:100])
 
 `buscar(..., detalhado=True)` preenche os scores intermediários só para diagnóstico/planilha;
 o pipeline usa `score` (CE) e `LIMIAR_RELEVANCIA=0.5`.
+
+### T16 — Guardrails: três situações de recusa (Pessoa B)
+
+`avaliar_evidencias` + `perguntar` cobrem:
+
+1. **Fora de escopo** — T11 (`_OFFTOPIC` nas regras, sem âncora VoC); não busca.
+2. **Sem evidência** — busca rodou; nada com `score >= LIMIAR_RELEVANCIA`.
+3. **Evidência insuficiente** — poucas acima do limiar; responde com aviso (coberto nos unitários).
+
+**Verificar:**
+
+```bash
+# unitários (inclui os 4 Vereditos + P16–P20 fora_de_escopo via regras)
+python -m pytest -q
+
+# smoke com índice (P07 fora_de_escopo, P01 responde; P09 pode xfail — limiar/CE)
+USE_MOCK=false GEN_MOCK=true HF_HUB_OFFLINE=1 python -m pytest -m integration -q
+```
+
+**Nota P09 (drone):** a pergunta tem âncora `entrega`, então permanece no escopo. O limiar atual
+pode deixar o CE passar reviews genéricas de entrega; isso é limite de retrieval/limiar, não
+motivo para marcar drone como `_OFFTOPIC`.
 
 ## Principais decisões técnicas
 

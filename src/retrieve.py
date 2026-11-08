@@ -73,6 +73,16 @@ _OFFTOPIC = (
     "receita de ",
     "resultado do jogo",
     "signo de ",
+    # P16–P20 (eval): código, política, esporte — só sem âncora VoC
+    "escreva em python",
+    "ordene um array",
+    "funcao que",
+    "presidente do brasil",
+    "melhor presidente",
+    "fascista",
+    "comunista",
+    "palmeiras",
+    "tem mundial",
 )
 
 _ANCORAS_VOC = (
