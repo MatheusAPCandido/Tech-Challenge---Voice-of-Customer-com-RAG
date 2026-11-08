@@ -11,14 +11,19 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import streamlit as st  # noqa: E402
 
-from src.config import USE_MOCK  # noqa: E402
+from src.config import GEN_MOCK, USE_MOCK  # noqa: E402
 from src.pipeline import perguntar  # noqa: E402
 
 st.set_page_config(page_title="Voice of Customer — Olist", layout="wide")
 st.title("Voice of Customer Intelligence")
 st.caption("Pergunte sobre as avaliações de clientes da Olist. Toda resposta mostra as avaliações que a sustentam.")
-if USE_MOCK:
-    st.info("Modo mock ativo: as respostas usam dados de exemplo (USE_MOCK=true no .env).")
+if USE_MOCK and GEN_MOCK:
+    st.info("Modo mock ativo: avaliações e respostas são de exemplo (USE_MOCK=true, GEN_MOCK=true).")
+elif USE_MOCK:
+    st.info("Busca em modo mock: as avaliações são de exemplo (USE_MOCK=true); "
+            "as respostas são geradas pelo LLM a partir delas (GEN_MOCK=false).")
+elif GEN_MOCK:
+    st.info("Geração em modo mock: avaliações reais, resposta de exemplo (GEN_MOCK=true).")
 
 with st.sidebar:
     st.header("Filtros")
