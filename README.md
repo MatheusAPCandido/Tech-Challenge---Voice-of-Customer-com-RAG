@@ -157,6 +157,11 @@ _TODO (Pessoa B e C): descrever e justificar_
 - Construção do contexto
 - Geração da resposta e citações
 
+**Geração (T21) e Ollama:** com `GEN_PROVIDER=ollama` (ou fallback do Gemini), modelos locais
+às vezes omitem `[R#]`. O código reforça a instrução JSON/user e, se a 1ª saída passar em
+`pode_responder` mas falhar no T22 (sem citações válidas), tenta **1 reescrita** antes de
+recusar. A validação de citações não é afrouxada.
+
 ## Tratamento de perguntas sem evidência
 
 Três situações em `src/guardrails.py`:

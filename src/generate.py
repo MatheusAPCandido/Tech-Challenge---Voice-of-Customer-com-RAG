@@ -154,8 +154,29 @@ def validar_citacoes(texto: str, mapa: dict[str, str]) -> list[str]:
 
 INSTRUCAO_JSON = (
     '\n\nResponda somente com um objeto JSON com as chaves "texto" (string) '
-    'e "pode_responder" (true ou false).'
+    'e "pode_responder" (true ou false). '
+    'No campo "texto", cada afirmação DEVE incluir citações [R1], [R2], … '
+    "usando apenas ids presentes no contexto; sem [R#] a saída é inválida. "
+    'Exemplo: {"texto": "Atraso na entrega [R1][R2].", "pode_responder": true}'
 )
+
+LEMBRETE_CITACOES = (
+    "Cite cada afirmação com [R1], [R2], … usando só ids do contexto."
+)
+
+CORRECAO_CITACOES = (
+    "Sua resposta anterior não tinha citações [R#] válidas. "
+    "Reescreva o JSON: no campo texto, cada afirmação deve citar [R1], [R2], … "
+    "com ids que existem no contexto."
+)
+
+
+def _montar_usuario(contexto: str, pergunta: str) -> str:
+    return f"{contexto}\n\nPergunta: {pergunta}\n\n{LEMBRETE_CITACOES}"
+
+
+def _montar_usuario_correcao(contexto: str, pergunta: str) -> str:
+    return f"{contexto}\n\nPergunta: {pergunta}\n\n{CORRECAO_CITACOES}"
 
 
 class _ErroDefinitivo(Exception):
@@ -253,28 +274,58 @@ def chamar_llm(sistema: str, usuario: str, tentativas: int = 3) -> SaidaLLM:
     raise RuntimeError("Falha na geração. " + " | ".join(erros))
 
 
+def _pos_processar_texto(texto: str, mapa: dict[str, str]) -> tuple[str, list[str]]:
+    """T22: limpa [R#] inválidos e devolve (texto, review_ids citados)."""
+    texto = remover_citacoes_invalidas(texto, mapa)
+    return texto, validar_citacoes(texto, mapa)
+
+
 def responder(pergunta: str, evidencias: list[Evidencia]) -> Resposta:
-    """Contrato principal: gera a resposta fundamentada nas evidências."""
+    """Contrato principal: gera a resposta fundamentada nas evidências.
+
+    Se o modelo responder sem [R#] válidos, tenta 1 reescrita (comum no Ollama local)
+    antes de recusar — sem afrouxar a validação T22.
+    """
     contexto, mapa = montar_contexto(evidencias)
     if GEN_MOCK:
         texto = (
             "Resposta de exemplo (modo mock). Os clientes relatam atrasos na entrega [R1][R3] "
             "e pedidos entregues de forma parcial [R2]."
         )
-    else:
-        saida = chamar_llm(PROMPT_SISTEMA, f"{contexto}\n\nPergunta: {pergunta}")
-        texto = saida.texto
-        modelo_recusou = not saida.pode_responder
-
-    # T22: o código confere as citações e decide a recusa e a confiança.
-    if not GEN_MOCK and modelo_recusou:
-        recusou = True
-    else:
-        texto = remover_citacoes_invalidas(texto, mapa)
-        citacoes = validar_citacoes(texto, mapa)
+        texto, citacoes = _pos_processar_texto(texto, mapa)
         recusou = texto.strip() == FRASE_RECUSA or not citacoes
+    else:
+        saida = chamar_llm(PROMPT_SISTEMA, _montar_usuario(contexto, pergunta))
+        if not saida.pode_responder:
+            return Resposta(
+                texto=FRASE_RECUSA,
+                evidencias=evidencias,
+                confianca="baixa",
+                recusada=True,
+                motivo_recusa="sem_evidencia",
+            )
+        texto, citacoes = _pos_processar_texto(saida.texto, mapa)
+        if not citacoes and texto.strip() != FRASE_RECUSA:
+            logger.warning("Geração sem [R#] válidos; tentando 1 reescrita.")
+            saida = chamar_llm(PROMPT_SISTEMA, _montar_usuario_correcao(contexto, pergunta))
+            if not saida.pode_responder:
+                return Resposta(
+                    texto=FRASE_RECUSA,
+                    evidencias=evidencias,
+                    confianca="baixa",
+                    recusada=True,
+                    motivo_recusa="sem_evidencia",
+                )
+            texto, citacoes = _pos_processar_texto(saida.texto, mapa)
+        recusou = texto.strip() == FRASE_RECUSA or not citacoes
+
     if recusou:
-        return Resposta(texto=FRASE_RECUSA, evidencias=evidencias, confianca="baixa",
-                        recusada=True, motivo_recusa="sem_evidencia")
+        return Resposta(
+            texto=FRASE_RECUSA,
+            evidencias=evidencias,
+            confianca="baixa",
+            recusada=True,
+            motivo_recusa="sem_evidencia",
+        )
     confianca = "alta" if len(citacoes) >= MIN_EVIDENCIAS else "media"
     return Resposta(texto=texto, citacoes=citacoes, evidencias=evidencias, confianca=confianca)
