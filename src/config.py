@@ -29,6 +29,9 @@ LLM_MODEL = os.getenv("LLM_MODEL", "gpt-4o-mini")
 # Geração da resposta (T21): provedor próprio, separado do LLM_PROVIDER da T11.
 GEN_PROVIDER = os.getenv("GEN_PROVIDER", "gemini")
 GEN_MODEL = os.getenv("GEN_MODEL", "gemini-3.5-flash")
+# Reserva da geração: se o Gemini falhar, tenta este modelo no Ollama local (vazio desliga).
+GEN_FALLBACK_MODEL = os.getenv("GEN_FALLBACK_MODEL", "qwen2.5")
+GEN_OLLAMA_TIMEOUT_S = float(os.getenv("GEN_OLLAMA_TIMEOUT_S", "120"))
 # GEN_MOCK=false chama o LLM de verdade mesmo com USE_MOCK=true (evidências falsas).
 # Se não for definido, segue o USE_MOCK.
 GEN_MOCK = _bool("GEN_MOCK", os.getenv("USE_MOCK", "true"))
