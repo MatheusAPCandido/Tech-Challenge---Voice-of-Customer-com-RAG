@@ -9,12 +9,15 @@ Regras (na ordem em que são aplicadas, todas contadas em data/gold/_qualidade.j
   6. customers → estado (UF do cliente)
   7. deduplica: um documento por review_id e um por texto idêntico (ignorando caixa, acentos e pontuação),
      mantendo a avaliação mais antiga
-  8. tema = "" (preenchido na T08)
+  8. tema = assunto principal da review (regras em src/medallion/temas.py, T08)
 
 Saídas extras em data/gold/:
-  reviews_completo.parquet  todas as reviews com conteúdo (antes da etapa 7), com colunas extras
-                            e qtd_textos_identicos, para análises e respostas agregadas
+  reviews_completo.parquet  todas as reviews com conteúdo (antes da etapa 7), com colunas extras,
+                            qtd_textos_identicos e `temas` (todos os temas citados, "a|b"),
+                            para análises e respostas agregadas
   resumo_categorias.parquet nota média, % negativas e % de atraso por categoria
+  resumo_temas.parquet      por tema: quantas reviews têm o tema como principal, quantas o citam,
+                            nota média, % negativas e % de entregas atrasadas
 
 Uso isolado:  python -m src.medallion.gold
 """
@@ -27,6 +30,7 @@ import unicodedata
 import pandas as pd
 
 from src.medallion import GOLD_DIR, SILVER_DIR, garantir_pastas
+from src.medallion.temas import TEMAS, tema_principal, temas_da_review
 from src.schema import COLUNAS_DOCUMENTO
 
 MIN_LETRAS = 3
@@ -123,7 +127,9 @@ def executar() -> pd.DataFrame:
     d["categoria_en"] = d["categoria_en"].fillna("sem_categoria")
     d["estado"] = d["customer_state"]
     d["review_score"] = d["review_score"].astype("int64")
-    d["tema"] = ""
+    lista_temas = d["texto"].map(temas_da_review)
+    d["tema"] = lista_temas.map(tema_principal)
+    d["temas"] = lista_temas.map("|".join)
     d["sentimento"] = pd.cut(d["review_score"], bins=[0, 2, 3, 5],
                              labels=["negativo", "neutro", "positivo"]).astype("string")
     d["tamanho_texto"] = d["texto"].str.len().astype("int64")
@@ -142,7 +148,7 @@ def executar() -> pd.DataFrame:
 
     extras = ["order_id", "sentimento", "tamanho_texto", "categoria_en", "todas_categorias",
               "n_itens", "valor_pedido", "estado_seller", "order_status",
-              "qtd_textos_identicos", "no_indice"]
+              "temas", "qtd_textos_identicos", "no_indice"]
     completo = d[COLUNAS_DOCUMENTO + extras].reset_index(drop=True)
     docs = completo[completo["no_indice"]].reset_index(drop=True)
 
@@ -151,6 +157,7 @@ def executar() -> pd.DataFrame:
     assert docs["texto"].notna().all() and (docs["texto"] != "").all(), "documento sem texto"
     assert docs["review_score"].between(1, 5).all(), "nota fora de 1..5"
     assert docs["data_compra"].str.fullmatch(r"\d{4}-\d{2}").all(), "data_compra fora do formato AAAA-MM"
+    assert docs["tema"].isin(TEMAS).all(), "tema fora da lista de src/medallion/temas.py"
 
     q["documentos_reviews_completo"] = len(completo)
     q["documentos_indice"] = len(docs)
@@ -159,10 +166,12 @@ def executar() -> pd.DataFrame:
     q["nao_entregues"] = int((~docs["entregue"]).sum())
     q["sem_categoria"] = int((docs["categoria"] == "sem_categoria").sum())
     q["mediana_tamanho_texto"] = int(docs["tamanho_texto"].median())
+    q["pct_tema_indice"] = (docs["tema"].value_counts(normalize=True) * 100).round(1).to_dict()
 
     resumo = _resumo_categorias(completo)
     completo.to_parquet(GOLD_DIR / "reviews_completo.parquet", index=False)
     resumo.to_parquet(GOLD_DIR / "resumo_categorias.parquet", index=False)
+    _resumo_temas(completo).to_parquet(GOLD_DIR / "resumo_temas.parquet", index=False)
     (GOLD_DIR / "_qualidade.json").write_text(json.dumps(q, indent=2, ensure_ascii=False), encoding="utf-8")
     print("[gold] qualidade:", json.dumps(q, indent=2, ensure_ascii=False))
     return docs
@@ -185,6 +194,36 @@ def _resumo_categorias(completo: pd.DataFrame) -> pd.DataFrame:
         .sort_values("n_reviews", ascending=False)
         .reset_index()
     )
+
+
+def _resumo_temas(completo: pd.DataFrame) -> pd.DataFrame:
+    """Contagens por tema sobre TODAS as reviews com conteúdo (inclui textos repetidos),
+    para responder perguntas agregadas ("quais os principais motivos de reclamação?")."""
+    base = completo.assign(
+        negativa=completo["sentimento"].eq("negativo"),
+        atrasou=completo["dias_atraso"] > 0,
+    )
+    principal = base.groupby("tema").agg(
+        n_principal=("review_id", "size"),
+        nota_media=("review_score", "mean"),
+        pct_negativas=("negativa", "mean"),
+    )
+    entregues = base[base["entregue"]].groupby("tema")["atrasou"].mean().rename("pct_entregas_atrasadas")
+    citacoes = (
+        base.assign(t=base["temas"].str.split("|")).explode("t")
+        .query("t != ''").groupby("t").size().rename("n_citacoes")
+    )
+    total = len(base)
+    out = principal.join(entregues).join(citacoes).reset_index().rename(columns={"index": "tema"})
+    out["descricao"] = out["tema"].map(TEMAS)
+    out["pct_principal"] = (out["n_principal"] / total * 100).round(1)
+    out["n_citacoes"] = out["n_citacoes"].fillna(0).astype("int64")
+    out["nota_media"] = out["nota_media"].round(2)
+    out["pct_negativas"] = (out["pct_negativas"] * 100).round(1)
+    out["pct_entregas_atrasadas"] = (out["pct_entregas_atrasadas"].astype("float") * 100).round(1)
+    colunas = ["tema", "descricao", "n_principal", "pct_principal", "n_citacoes",
+               "nota_media", "pct_negativas", "pct_entregas_atrasadas"]
+    return out[colunas].sort_values("n_principal", ascending=False).reset_index(drop=True)
 
 
 if __name__ == "__main__":
