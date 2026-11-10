@@ -11,6 +11,10 @@ data/*
 chroma_db/
 artifacts/
 *.parquet
+eval/*.xlsx
+eval/resultados.csv
+eval/metricas_precisao.csv
+context/
 
 # Segredos
 .env

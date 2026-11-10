@@ -53,7 +53,9 @@ Consulta (a cada pergunta)
 ├── data/                    # CSVs do Kaggle (não versionados)
 ├── eval/
 │   ├── perguntas.csv        # conjunto de perguntas de teste
-│   └── run_eval.py          # métricas de avaliação
+│   ├── run_eval.py          # T17a: taxa de recusa correta
+│   ├── precisao_k.py        # T17a: precisão@k (rótulos T15)
+│   └── rotulos_io.py        # leitura compartilhada da planilha de rótulos
 ├── notebooks/01_eda.ipynb   # análise exploratória
 └── src/
     ├── config.py            # configurações e variáveis de ambiente
@@ -78,7 +80,7 @@ _TODO: confirmar escolhas e versões._
 | Embeddings | _TODO_ (ex.: `intfloat/multilingual-e5-base`) |
 | Banco vetorial | ChromaDB |
 | Busca lexical | rank-bm25 |
-| Reranker | _TODO_ (ex.: `BAAI/bge-reranker-v2-m3`) |
+| Reranker | `BAAI/bge-reranker-v2-m3` (cross-encoder) |
 | LLM | _TODO_ |
 | Interface | Streamlit |
 
@@ -205,15 +207,54 @@ _TODO (Pessoa B e C): descrever e justificar_
 - Construção do contexto
 - Geração da resposta e citações
 
+**Geração (T21) e Ollama:** com `GEN_PROVIDER=ollama` (ou fallback do Gemini), modelos locais
+às vezes omitem `[R#]`. O código reforça a instrução JSON/user e, se a 1ª saída passar em
+`pode_responder` mas falhar no T22 (sem citações válidas), tenta **1 reescrita** antes de
+recusar. A validação de citações não é afrouxada.
+
 ## Tratamento de perguntas sem evidência
 
-_TODO (Pessoa B): descrever as três situações (fora de escopo, sem evidência, evidência
-insuficiente) e como o limiar foi calibrado._
+Três situações em `src/guardrails.py`:
+
+1. **Fora de escopo** — `processar_pergunta` classifica `tipo=fora_de_escopo` (T11); não depende do limiar.
+2. **Sem evidência** — nenhuma evidência com `score >= LIMIAR_RELEVANCIA`.
+3. **Evidência insuficiente** — há evidências acima do limiar, mas menos que `MIN_EVIDENCIAS` (resposta parcial).
+
+**Limiar (`LIMIAR_RELEVANCIA=0.5`):** aplica-se ao score do cross-encoder (sigmoid). Calibrado na T15 com
+planilha de pares pergunta–evidência (`eval/gerar_rotulos_t15.py` + rótulos + `eval/calibrar_limiar.py`).
+No grid testado, `0.5` maximizou (úteis retidos − inúteis retidos); limiares ≥ `0.55` começaram a zerar
+evidências em perguntas que deveriam responder. Re-rotule a planilha e rode de novo se quiser refinar.
 
 ## Avaliação
 
-_TODO (Pessoa B): tabela de resultados (precisão@k, fidelidade, taxa de recusa correta)
-comparando as variações testadas._
+**T17a** (sem geração Gemini): recusa correta + precisão@k.  
+**T17b** (depois): fidelidade / RAGAS — precisa `GEN_MOCK=false` e chave Gemini.
+
+### Recusa correta
+
+Compara `esperado` em `eval/perguntas.csv` (`responder` / `recusar`) com `Resposta.recusada`.
+O motivo (`fora_de_escopo`, `sem_evidencia`, …) é só diagnóstico — a métrica é binária.
+
+```bash
+USE_MOCK=false GEN_MOCK=true HF_HUB_OFFLINE=1 python -m eval.run_eval
+```
+
+`JUDGE_ENABLED` default `false` (reprodutível). Use `true` só se quiser incluir o gate Ollama
+(ex. P09). Gera `eval/resultados.csv` (local, gitignored).
+
+### Precisão@k
+
+Fraçāo de evidências marcadas `relevante=sim` entre as top-k da planilha T15 (macro-average
+por pergunta com ≥k rótulos). Fonte padrão: `eval/rotulos_t15_manual.xlsx` (não versionada;
+`eval/*.xlsx` no `.gitignore`).
+
+```bash
+python -m eval.precisao_k
+# ou: python -m eval.precisao_k --xlsx eval/rotulos_t15_manual.xlsx
+```
+
+Reporta macro precisão@5 e @10 e grava `eval/metricas_precisao.csv`. Perguntas sem rótulos
+suficientes (ex. P09 / P28–P30 incompletos) são omitidas da média.
 
 ## Exemplos de perguntas e respostas
 
@@ -261,11 +302,163 @@ streamlit run app/streamlit_app.py
 
 Com `USE_MOCK=true` no `.env`, a interface roda com dados falsos, sem precisar da base pronta.
 
-### 6. Rodar a avaliação
+### 6. Rodar a avaliação (T17a)
 
 ```bash
-python -m eval.run_eval
+USE_MOCK=false GEN_MOCK=true HF_HUB_OFFLINE=1 python -m eval.run_eval
+python -m eval.precisao_k
 ```
+
+Detalhes na seção [Avaliação](#avaliação). Fidelidade = T17b (geração real).
+
+### 7. Testes (pytest)
+
+Suíte unitária rápida (sem índice Chroma, embeddings, reranker ou LLM de geração):
+
+```bash
+pip install -r requirements.txt -r requirements-dev.txt
+python -m pytest
+```
+
+Por padrão o marker `integration` fica de fora (`addopts = -m "not integration"`).
+
+Smoke T16 com índice real (busca + limiar; geração em mock; judge off):
+
+```bash
+USE_MOCK=false GEN_MOCK=true HF_HUB_OFFLINE=1 python -m pytest -m integration -q
+```
+
+Gate de suficiência Ollama (P09; skip limpo se daemon off):
+
+```bash
+USE_MOCK=false GEN_MOCK=true JUDGE_ENABLED=true HF_HUB_OFFLINE=1 \
+  python -m pytest -m integration -q -k p09_com_judge
+```
+
+## Etapas Intermediárias Finalizadas
+
+### T11 — Transformação da pergunta (Pessoa B)
+
+`processar_pergunta()` em `src/retrieve.py` classifica a pergunta (`pontual` / `agregada` / `fora_de_escopo`),
+extrai filtros e monta a consulta antes da busca. Com `LLM_PROVIDER=ollama` usa JSON via Ollama
+(`qwen2.5` recomendado); sem Ollama, usa regras locais (`_OFFTOPIC` cobre P07/P08 e P16–P20 do eval).
+
+**Verificar:**
+
+```bash
+# opcional
+ollama serve && ollama pull qwen2.5
+
+python -c "
+from src.retrieve import processar_pergunta
+from src.pipeline import perguntar
+
+print(processar_pergunta('Quais padrões aparecem nas avaliações de clientes insatisfeitos?'))
+# esperado: agregada + review_score_max=2
+
+print(processar_pergunta('Qual a previsão do tempo em São Paulo amanhã?'))
+# esperado: fora_de_escopo
+
+r = perguntar('Qual a previsão do tempo em São Paulo amanhã?')
+print(r.recusada, r.motivo_recusa)  # True, fora_de_escopo
+"
+```
+
+### T12 — Busca híbrida com RRF (Pessoa B)
+
+`buscar()` em `src/retrieve.py` combina Chroma (vetorial) + BM25 e funde com RRF (`RRF_K=60`).
+O score é normalizado ≈`[0, 1]` para o limiar atual.
+
+**Verificar** (`USE_MOCK=false`, índice já gerado com `python -m src.index --amostra`):
+
+```bash
+USE_MOCK=false python -c "
+from src.retrieve import buscar
+evs = buscar('entrega atrasada')
+print(len(evs), round(evs[0].score, 4), evs[0].texto[:100])
+"
+```
+
+### T13 — Filtros por metadados (Pessoa B)
+
+`buscar(..., filtros)` aplica `FILTROS_SUPORTADOS` no Chroma (`where`) e no mesmo recorte do BM25 antes do RRF.
+Filtro por `tema` só faz sentido após T08 (hoje o campo costuma estar vazio).
+
+**Verificar:**
+
+```bash
+USE_MOCK=false python -c "
+from src.retrieve import buscar
+a = buscar('entrega', {'review_score_max': 2})
+print([(e.review_score, e.texto[:50]) for e in a[:3]])
+"
+```
+
+### T14 — Reranker cross-encoder (Pessoa B)
+
+Após a híbrida (aula02: BM25 + vetorial + RRF), um **cross-encoder** (`RERANKER_MODEL`) reordena o pool
+(`TOP_K_CANDIDATOS`) e corta em `TOP_K_FINAL`. O score final é `sigmoid(logit)` ≈`(0, 1]`.
+
+**Verificar** (`USE_MOCK=false`; 1ª execução pode baixar o modelo):
+
+```bash
+USE_MOCK=false python -c "
+from src.retrieve import buscar
+evs = buscar('entrega atrasada')
+print(len(evs), [round(e.score, 3) for e in evs[:5]])
+print(evs[0].texto[:100])
+"
+```
+
+### T15 — Calibrar limiar (Pessoa B)
+
+1. Gerar planilha (pool `TOP_K_CANDIDATOS`, scores CE/RRF/BM25/vetorial; 1 aba por pergunta):
+   ```bash
+   USE_MOCK=false python -m eval.gerar_rotulos_t15
+   ```
+2. Preencher a coluna `relevante` (`sim`/`nao`) em cada aba `P0x`.
+3. Sugerir limiar (e opcionalmente gravar em `.env.example` / default do config):
+   ```bash
+   python -m eval.calibrar_limiar
+   python -m eval.calibrar_limiar --aplicar
+   ```
+
+`buscar(..., detalhado=True)` preenche os scores intermediários só para diagnóstico/planilha;
+o pipeline usa `score` (CE) e `LIMIAR_RELEVANCIA=0.5`.
+
+### T16 — Guardrails: três situações de recusa (Pessoa B)
+
+`avaliar_evidencias` + `perguntar` cobrem:
+
+1. **Fora de escopo** — T11 (`_OFFTOPIC` nas regras, sem âncora VoC); não busca.
+2. **Sem evidência** — busca rodou; nada com `score >= LIMIAR_RELEVANCIA` (ou judge opcional).
+3. **Evidência insuficiente** — poucas acima do limiar; responde com aviso (coberto nos unitários).
+
+**Gate de suficiência (`JUDGE_ENABLED`, default `false`):** depois do limiar CE, se houver relevantes,
+Ollama responde JSON `{"suficiente": bool}` — se `false`, recusa com `sem_evidencia`. Falha do
+Ollama → mantém o veredito do limiar. Usa `OLLAMA_HOST` + `LLM_MODEL` (não Gemini/`GEN_*`).
+`filtrar_relevantes` continua só por limiar CE (o judge não reordena nem filtra a lista).
+
+Isto **não** é a T17 (precisão@k / fidelidade / RAGAS): é um interruptor no pipeline de produção.
+
+**Verificar:**
+
+```bash
+# unitários (inclui Vereditos + mocks do judge; conftest força JUDGE off)
+python -m pytest -q
+
+# smoke com índice, judge off (P07 fora_de_escopo, P01 responde; P09 pode xfail — limiar/CE)
+USE_MOCK=false GEN_MOCK=true HF_HUB_OFFLINE=1 python -m pytest -m integration -q
+
+# P09 com gate (precisa ollama serve; senão skip)
+USE_MOCK=false GEN_MOCK=true JUDGE_ENABLED=true HF_HUB_OFFLINE=1 \
+  python -m pytest -m integration -q -k p09_com_judge
+```
+
+**Nota P09 (drone):** a pergunta tem âncora `entrega`, então permanece no escopo. Sem judge, o
+limiar/CE pode passar reviews genéricas de entrega (`xfail` documenta o débito). Com
+`JUDGE_ENABLED=true` + Ollama, o smoke `p09_com_judge` espera `sem_evidencia`. Não marcar
+drone como `_OFFTOPIC`.
 
 ## Principais decisões técnicas
 
