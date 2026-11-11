@@ -1,2 +1,4 @@
 # Dependências só para desenvolvimento / CI local (não necessárias na demo).
 pytest>=8
+matplotlib>=3.8
+ipykernel>=6.29
