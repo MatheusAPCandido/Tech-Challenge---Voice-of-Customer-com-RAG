@@ -1,0 +1,166 @@
+modelo,id,origem,consulta,p@5,p@10,rr@10,sim_top1
+intfloat/multilingual-e5-base,P01,equipe,O que os clientes relatam sobre produtos que chegaram quebrados?,1.0,1.0,1.0,0.8776
+intfloat/multilingual-e5-base,P02,equipe,O que os clientes relatam sobre problemas relacionados à entrega?,0.4,0.7,1.0,0.8649
+intfloat/multilingual-e5-base,P06,equipe,Quais avaliações sustentam que existem atrasos recorrentes na entrega?,1.0,1.0,1.0,0.8716
+intfloat/multilingual-e5-base,P10,equipe,O que os clientes comentam sobre preço ou custo-benefício dos produtos?,0.2,0.2,1.0,0.8548
+intfloat/multilingual-e5-base,P11,equipe,Os clientes relatam receber produto diferente do que compraram?,0.8,0.9,1.0,0.8827
+intfloat/multilingual-e5-base,P14,equipe,O que os clientes relatam sobre atendimento ou suporte após a compra?,0.6,0.6,1.0,0.8572
+intfloat/multilingual-e5-base,P22,equipe,"O que dizem sobre trocas, devoluções ou arrependimento da compra?",1.0,0.8,1.0,0.8624
+intfloat/multilingual-e5-base,P23,equipe,Há reclamações de clientes de SP sobre atraso na entrega?,1.0,0.9,1.0,0.8708
+intfloat/multilingual-e5-base,P26,equipe,Os clientes elogiam a entrega rápida e o cumprimento do prazo?,1.0,1.0,1.0,0.8837
+intfloat/multilingual-e5-base,P29,equipe,O que os clientes relatam sobre atraso na entrega no segundo semestre de 2017?,1.0,0.9,1.0,0.8628
+intfloat/multilingual-e5-base,C01,t07,Pedidos que chegaram faltando itens,1.0,0.9,1.0,0.908
+intfloat/multilingual-e5-base,C02,t07,Comprei vários produtos e só recebi parte deles,0.6,0.5,1.0,0.8875
+intfloat/multilingual-e5-base,C03,t07,Clientes que receberam menos unidades do que pagaram,0.2,0.2,1.0,0.8725
+intfloat/multilingual-e5-base,C04,t07,Faltou peça ou acessório no produto entregue,0.8,0.5,0.5,0.9007
+intfloat/multilingual-e5-base,C05,t07,A encomenda veio incompleta,1.0,0.9,1.0,0.9184
+intfloat/multilingual-e5-base,C06,t07,Clientes que nunca receberam o pedido,0.4,0.5,1.0,0.8796
+intfloat/multilingual-e5-base,C07,t07,Produto não foi entregue até hoje,1.0,1.0,1.0,0.9025
+intfloat/multilingual-e5-base,C08,t07,O rastreio diz que foi entregue mas não chegou nada,0.8,0.7,1.0,0.8791
+intfloat/multilingual-e5-base,C09,t07,Estou esperando minha compra e ela não aparece,0.8,0.9,0.5,0.8981
+intfloat/multilingual-e5-base,C10,t07,Encomenda extraviada pelos Correios,0.0,0.2,0.125,0.8984
+intfloat/multilingual-e5-base,C11,t07,Mandaram um produto diferente do que eu comprei,0.8,0.6,1.0,0.9185
+intfloat/multilingual-e5-base,C12,t07,A cor ou o tamanho recebido não era o que pedi,0.6,0.6,1.0,0.8722
+intfloat/multilingual-e5-base,C13,t07,O item entregue não corresponde ao anúncio,0.4,0.3,0.3333333333333333,0.8877
+intfloat/multilingual-e5-base,C14,t07,Recebi outro modelo no lugar do que escolhi,1.0,0.9,1.0,0.8995
+intfloat/multilingual-e5-base,C15,t07,Produto bem diferente da foto do site,0.6,0.6,1.0,0.9032
+intfloat/multilingual-e5-base,C16,t07,Produto chegou quebrado,1.0,1.0,1.0,0.9453
+intfloat/multilingual-e5-base,C17,t07,O aparelho parou de funcionar poucos dias depois,0.6,0.5,1.0,0.8651
+intfloat/multilingual-e5-base,C18,t07,Item veio com defeito de fábrica,1.0,0.8,1.0,0.9171
+intfloat/multilingual-e5-base,C19,t07,Mercadoria danificada no transporte,0.2,0.3,0.5,0.8898
+intfloat/multilingual-e5-base,C20,t07,Veio amassado e riscado,1.0,0.9,1.0,0.8923
+intfloat/multilingual-e5-base,C21,t07,A entrega demorou muito mais do que o prometido,1.0,0.8,1.0,0.8879
+intfloat/multilingual-e5-base,C22,t07,O pedido chegou depois da data prevista,0.0,0.0,0.0,0.8934
+intfloat/multilingual-e5-base,C23,t07,O prazo de entrega foi descumprido,0.6,0.6,0.5,0.904
+intfloat/multilingual-e5-base,C24,t07,Demora excessiva para o produto chegar,0.8,0.9,1.0,0.9179
+intfloat/multilingual-e5-base,C25,t07,Clientes reclamando de lentidão na entrega,1.0,0.9,1.0,0.8995
+intfloat/multilingual-e5-base,C26,t07,A loja não responde minhas mensagens,0.4,0.2,0.5,0.892
+intfloat/multilingual-e5-base,C27,t07,Dificuldade para conseguir o reembolso,0.8,0.5,1.0,0.887
+intfloat/multilingual-e5-base,C28,t07,Pedi para cancelar a compra e ninguém resolveu,1.0,0.9,1.0,0.8923
+intfloat/multilingual-e5-base,C29,t07,Como foi o atendimento do vendedor,1.0,1.0,1.0,0.8844
+intfloat/multilingual-e5-base,C30,t07,Problemas para devolver ou trocar o produto,0.8,0.7,1.0,0.8943
+intfloat/multilingual-e5-base,C31,t07,Material de baixa qualidade,1.0,0.9,1.0,0.9072
+intfloat/multilingual-e5-base,C32,t07,Acabamento mal feito,1.0,0.8,1.0,0.9135
+intfloat/multilingual-e5-base,C33,t07,O produto é menor do que parecia,1.0,0.9,1.0,0.8872
+intfloat/multilingual-e5-base,C34,t07,Tecido fino e frágil,1.0,0.9,1.0,0.888
+intfloat/multilingual-e5-base,C35,t07,Produto resistente e bem feito,0.8,0.7,1.0,0.908
+intfloat/multilingual-e5-base,C36,t07,O frete é caro demais,1.0,1.0,1.0,0.927
+intfloat/multilingual-e5-base,C37,t07,Ótimo custo-benefício,0.6,0.8,1.0,0.9209
+intfloat/multilingual-e5-base,C38,t07,Preço justo pelo que entrega,0.2,0.2,0.5,0.8999
+intfloat/multilingual-e5-base,C39,t07,Vale a pena pelo valor pago,0.4,0.6,1.0,0.9039
+intfloat/multilingual-e5-base,C40,t07,Comprei em promoção e valeu,0.0,0.0,0.0,0.9014
+intfloat/multilingual-e5-base,C41,t07,Chegou antes do prazo,1.0,1.0,1.0,0.939
+intfloat/multilingual-e5-base,C42,t07,Entrega super rápida,1.0,1.0,1.0,0.9263
+intfloat/multilingual-e5-base,C43,t07,Recebi muito antes da data prevista,1.0,1.0,1.0,0.9144
+intfloat/multilingual-e5-base,C44,t07,O pedido chegou no prazo combinado,1.0,0.9,1.0,0.9201
+intfloat/multilingual-e5-base,C45,t07,Envio ágil e pontual,1.0,1.0,1.0,0.9038
+intfloat/multilingual-e5-small,P01,equipe,O que os clientes relatam sobre produtos que chegaram quebrados?,0.8,0.9,1.0,0.8809
+intfloat/multilingual-e5-small,P02,equipe,O que os clientes relatam sobre problemas relacionados à entrega?,0.4,0.3,0.25,0.8776
+intfloat/multilingual-e5-small,P06,equipe,Quais avaliações sustentam que existem atrasos recorrentes na entrega?,0.8,0.9,1.0,0.8899
+intfloat/multilingual-e5-small,P10,equipe,O que os clientes comentam sobre preço ou custo-benefício dos produtos?,0.6,0.5,1.0,0.8848
+intfloat/multilingual-e5-small,P11,equipe,Os clientes relatam receber produto diferente do que compraram?,0.6,0.6,1.0,0.8993
+intfloat/multilingual-e5-small,P14,equipe,O que os clientes relatam sobre atendimento ou suporte após a compra?,0.6,0.6,1.0,0.8762
+intfloat/multilingual-e5-small,P22,equipe,"O que dizem sobre trocas, devoluções ou arrependimento da compra?",0.6,0.7,1.0,0.8915
+intfloat/multilingual-e5-small,P23,equipe,Há reclamações de clientes de SP sobre atraso na entrega?,0.8,0.8,1.0,0.8927
+intfloat/multilingual-e5-small,P26,equipe,Os clientes elogiam a entrega rápida e o cumprimento do prazo?,1.0,1.0,1.0,0.9027
+intfloat/multilingual-e5-small,P29,equipe,O que os clientes relatam sobre atraso na entrega no segundo semestre de 2017?,1.0,0.9,1.0,0.8986
+intfloat/multilingual-e5-small,C01,t07,Pedidos que chegaram faltando itens,0.8,0.6,1.0,0.943
+intfloat/multilingual-e5-small,C02,t07,Comprei vários produtos e só recebi parte deles,1.0,1.0,1.0,0.936
+intfloat/multilingual-e5-small,C03,t07,Clientes que receberam menos unidades do que pagaram,0.2,0.3,1.0,0.8979
+intfloat/multilingual-e5-small,C04,t07,Faltou peça ou acessório no produto entregue,0.2,0.2,0.5,0.9258
+intfloat/multilingual-e5-small,C05,t07,A encomenda veio incompleta,1.0,0.7,1.0,0.954
+intfloat/multilingual-e5-small,C06,t07,Clientes que nunca receberam o pedido,0.4,0.5,1.0,0.9106
+intfloat/multilingual-e5-small,C07,t07,Produto não foi entregue até hoje,1.0,1.0,1.0,0.9535
+intfloat/multilingual-e5-small,C08,t07,O rastreio diz que foi entregue mas não chegou nada,0.8,0.6,1.0,0.9319
+intfloat/multilingual-e5-small,C09,t07,Estou esperando minha compra e ela não aparece,0.8,0.8,0.5,0.9326
+intfloat/multilingual-e5-small,C10,t07,Encomenda extraviada pelos Correios,0.2,0.1,0.5,0.9176
+intfloat/multilingual-e5-small,C11,t07,Mandaram um produto diferente do que eu comprei,0.6,0.6,1.0,0.9469
+intfloat/multilingual-e5-small,C12,t07,A cor ou o tamanho recebido não era o que pedi,0.0,0.0,0.0,0.9192
+intfloat/multilingual-e5-small,C13,t07,O item entregue não corresponde ao anúncio,0.2,0.2,0.2,0.9298
+intfloat/multilingual-e5-small,C14,t07,Recebi outro modelo no lugar do que escolhi,0.6,0.5,1.0,0.9237
+intfloat/multilingual-e5-small,C15,t07,Produto bem diferente da foto do site,0.8,0.8,1.0,0.941
+intfloat/multilingual-e5-small,C16,t07,Produto chegou quebrado,1.0,0.9,1.0,0.9724
+intfloat/multilingual-e5-small,C17,t07,O aparelho parou de funcionar poucos dias depois,0.0,0.0,0.0,0.9102
+intfloat/multilingual-e5-small,C18,t07,Item veio com defeito de fábrica,0.8,0.8,1.0,0.948
+intfloat/multilingual-e5-small,C19,t07,Mercadoria danificada no transporte,0.0,0.1,0.125,0.91
+intfloat/multilingual-e5-small,C20,t07,Veio amassado e riscado,0.2,0.2,1.0,0.9291
+intfloat/multilingual-e5-small,C21,t07,A entrega demorou muito mais do que o prometido,1.0,1.0,1.0,0.9309
+intfloat/multilingual-e5-small,C22,t07,O pedido chegou depois da data prevista,0.0,0.0,0.0,0.9357
+intfloat/multilingual-e5-small,C23,t07,O prazo de entrega foi descumprido,0.6,0.5,1.0,0.944
+intfloat/multilingual-e5-small,C24,t07,Demora excessiva para o produto chegar,1.0,1.0,1.0,0.9543
+intfloat/multilingual-e5-small,C25,t07,Clientes reclamando de lentidão na entrega,0.8,0.8,1.0,0.9302
+intfloat/multilingual-e5-small,C26,t07,A loja não responde minhas mensagens,0.8,0.7,1.0,0.9164
+intfloat/multilingual-e5-small,C27,t07,Dificuldade para conseguir o reembolso,0.4,0.3,1.0,0.9164
+intfloat/multilingual-e5-small,C28,t07,Pedi para cancelar a compra e ninguém resolveu,1.0,1.0,1.0,0.9214
+intfloat/multilingual-e5-small,C29,t07,Como foi o atendimento do vendedor,1.0,1.0,1.0,0.9222
+intfloat/multilingual-e5-small,C30,t07,Problemas para devolver ou trocar o produto,1.0,0.9,1.0,0.9244
+intfloat/multilingual-e5-small,C31,t07,Material de baixa qualidade,1.0,1.0,1.0,0.9461
+intfloat/multilingual-e5-small,C32,t07,Acabamento mal feito,0.6,0.6,1.0,0.9401
+intfloat/multilingual-e5-small,C33,t07,O produto é menor do que parecia,0.8,0.8,1.0,0.9317
+intfloat/multilingual-e5-small,C34,t07,Tecido fino e frágil,0.8,0.8,1.0,0.9111
+intfloat/multilingual-e5-small,C35,t07,Produto resistente e bem feito,0.6,0.3,1.0,0.9348
+intfloat/multilingual-e5-small,C36,t07,O frete é caro demais,1.0,1.0,1.0,0.9624
+intfloat/multilingual-e5-small,C37,t07,Ótimo custo-benefício,1.0,0.9,1.0,0.9793
+intfloat/multilingual-e5-small,C38,t07,Preço justo pelo que entrega,0.4,0.3,1.0,0.93
+intfloat/multilingual-e5-small,C39,t07,Vale a pena pelo valor pago,0.4,0.3,0.5,0.9356
+intfloat/multilingual-e5-small,C40,t07,Comprei em promoção e valeu,0.0,0.0,0.0,0.9231
+intfloat/multilingual-e5-small,C41,t07,Chegou antes do prazo,1.0,0.9,1.0,0.9642
+intfloat/multilingual-e5-small,C42,t07,Entrega super rápida,1.0,1.0,1.0,0.9572
+intfloat/multilingual-e5-small,C43,t07,Recebi muito antes da data prevista,0.8,0.8,1.0,0.9516
+intfloat/multilingual-e5-small,C44,t07,O pedido chegou no prazo combinado,1.0,1.0,1.0,0.9525
+intfloat/multilingual-e5-small,C45,t07,Envio ágil e pontual,0.4,0.4,0.5,0.9279
+BAAI/bge-m3,P01,equipe,O que os clientes relatam sobre produtos que chegaram quebrados?,1.0,1.0,1.0,0.8394
+BAAI/bge-m3,P02,equipe,O que os clientes relatam sobre problemas relacionados à entrega?,0.6,0.7,1.0,0.8121
+BAAI/bge-m3,P06,equipe,Quais avaliações sustentam que existem atrasos recorrentes na entrega?,1.0,1.0,1.0,0.8271
+BAAI/bge-m3,P10,equipe,O que os clientes comentam sobre preço ou custo-benefício dos produtos?,1.0,0.9,1.0,0.7002
+BAAI/bge-m3,P11,equipe,Os clientes relatam receber produto diferente do que compraram?,0.6,0.6,1.0,0.9107
+BAAI/bge-m3,P14,equipe,O que os clientes relatam sobre atendimento ou suporte após a compra?,0.6,0.7,1.0,0.6916
+BAAI/bge-m3,P22,equipe,"O que dizem sobre trocas, devoluções ou arrependimento da compra?",1.0,1.0,1.0,0.7327
+BAAI/bge-m3,P23,equipe,Há reclamações de clientes de SP sobre atraso na entrega?,1.0,1.0,1.0,0.796
+BAAI/bge-m3,P26,equipe,Os clientes elogiam a entrega rápida e o cumprimento do prazo?,0.6,0.8,1.0,0.8341
+BAAI/bge-m3,P29,equipe,O que os clientes relatam sobre atraso na entrega no segundo semestre de 2017?,1.0,1.0,1.0,0.7918
+BAAI/bge-m3,C01,t07,Pedidos que chegaram faltando itens,1.0,0.9,1.0,0.8749
+BAAI/bge-m3,C02,t07,Comprei vários produtos e só recebi parte deles,1.0,1.0,1.0,0.9387
+BAAI/bge-m3,C03,t07,Clientes que receberam menos unidades do que pagaram,0.6,0.7,1.0,0.7389
+BAAI/bge-m3,C04,t07,Faltou peça ou acessório no produto entregue,0.8,0.8,0.5,0.8624
+BAAI/bge-m3,C05,t07,A encomenda veio incompleta,1.0,1.0,1.0,0.9266
+BAAI/bge-m3,C06,t07,Clientes que nunca receberam o pedido,1.0,0.9,1.0,0.8035
+BAAI/bge-m3,C07,t07,Produto não foi entregue até hoje,1.0,1.0,1.0,0.9853
+BAAI/bge-m3,C08,t07,O rastreio diz que foi entregue mas não chegou nada,1.0,0.9,1.0,0.9402
+BAAI/bge-m3,C09,t07,Estou esperando minha compra e ela não aparece,1.0,0.9,1.0,0.8905
+BAAI/bge-m3,C10,t07,Encomenda extraviada pelos Correios,0.4,0.6,1.0,0.8077
+BAAI/bge-m3,C11,t07,Mandaram um produto diferente do que eu comprei,0.6,0.8,1.0,0.9256
+BAAI/bge-m3,C12,t07,A cor ou o tamanho recebido não era o que pedi,0.2,0.2,0.3333333333333333,0.8565
+BAAI/bge-m3,C13,t07,O item entregue não corresponde ao anúncio,0.4,0.6,0.3333333333333333,0.8969
+BAAI/bge-m3,C14,t07,Recebi outro modelo no lugar do que escolhi,1.0,0.9,1.0,0.8754
+BAAI/bge-m3,C15,t07,Produto bem diferente da foto do site,0.6,0.8,0.3333333333333333,0.9018
+BAAI/bge-m3,C16,t07,Produto chegou quebrado,1.0,1.0,1.0,0.9632
+BAAI/bge-m3,C17,t07,O aparelho parou de funcionar poucos dias depois,0.8,0.5,1.0,0.7539
+BAAI/bge-m3,C18,t07,Item veio com defeito de fábrica,1.0,1.0,1.0,0.9279
+BAAI/bge-m3,C19,t07,Mercadoria danificada no transporte,0.6,0.6,1.0,0.754
+BAAI/bge-m3,C20,t07,Veio amassado e riscado,1.0,1.0,1.0,0.7944
+BAAI/bge-m3,C21,t07,A entrega demorou muito mais do que o prometido,1.0,1.0,1.0,0.9236
+BAAI/bge-m3,C22,t07,O pedido chegou depois da data prevista,0.8,0.6,1.0,0.8593
+BAAI/bge-m3,C23,t07,O prazo de entrega foi descumprido,0.2,0.4,0.2,0.9281
+BAAI/bge-m3,C24,t07,Demora excessiva para o produto chegar,1.0,0.9,1.0,0.9181
+BAAI/bge-m3,C25,t07,Clientes reclamando de lentidão na entrega,1.0,1.0,1.0,0.8713
+BAAI/bge-m3,C26,t07,A loja não responde minhas mensagens,0.6,0.8,1.0,0.8465
+BAAI/bge-m3,C27,t07,Dificuldade para conseguir o reembolso,1.0,0.8,1.0,0.8343
+BAAI/bge-m3,C28,t07,Pedi para cancelar a compra e ninguém resolveu,1.0,1.0,1.0,0.8286
+BAAI/bge-m3,C29,t07,Como foi o atendimento do vendedor,1.0,1.0,1.0,0.8391
+BAAI/bge-m3,C30,t07,Problemas para devolver ou trocar o produto,1.0,1.0,1.0,0.8344
+BAAI/bge-m3,C31,t07,Material de baixa qualidade,1.0,1.0,1.0,0.8948
+BAAI/bge-m3,C32,t07,Acabamento mal feito,1.0,1.0,1.0,0.8796
+BAAI/bge-m3,C33,t07,O produto é menor do que parecia,0.8,0.7,1.0,0.8801
+BAAI/bge-m3,C34,t07,Tecido fino e frágil,1.0,1.0,1.0,0.7527
+BAAI/bge-m3,C35,t07,Produto resistente e bem feito,1.0,1.0,1.0,0.8895
+BAAI/bge-m3,C36,t07,O frete é caro demais,1.0,1.0,1.0,0.952
+BAAI/bge-m3,C37,t07,Ótimo custo-benefício,1.0,1.0,1.0,1.0001
+BAAI/bge-m3,C38,t07,Preço justo pelo que entrega,1.0,1.0,1.0,0.8188
+BAAI/bge-m3,C39,t07,Vale a pena pelo valor pago,0.6,0.7,1.0,0.9187
+BAAI/bge-m3,C40,t07,Comprei em promoção e valeu,0.6,0.6,1.0,0.8257
+BAAI/bge-m3,C41,t07,Chegou antes do prazo,0.8,0.9,1.0,0.9746
+BAAI/bge-m3,C42,t07,Entrega super rápida,1.0,1.0,1.0,0.9459
+BAAI/bge-m3,C43,t07,Recebi muito antes da data prevista,1.0,0.8,1.0,0.9584
+BAAI/bge-m3,C44,t07,O pedido chegou no prazo combinado,1.0,1.0,1.0,0.9096
+BAAI/bge-m3,C45,t07,Envio ágil e pontual,0.8,0.8,1.0,0.7618

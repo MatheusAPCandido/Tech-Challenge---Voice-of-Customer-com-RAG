@@ -1,0 +1,66 @@
+id,origem,avaliacao,consulta,temas_relevantes
+P01,equipe,tema,O que os clientes relatam sobre produtos que chegaram quebrados?,produto_defeito
+P02,equipe,tema,O que os clientes relatam sobre problemas relacionados à entrega?,atraso_entrega|nao_recebido|entrega_incompleta
+P06,equipe,tema,Quais avaliações sustentam que existem atrasos recorrentes na entrega?,atraso_entrega|nao_recebido
+P10,equipe,tema,O que os clientes comentam sobre preço ou custo-benefício dos produtos?,preco_frete
+P11,equipe,tema,Os clientes relatam receber produto diferente do que compraram?,produto_errado
+P14,equipe,tema,O que os clientes relatam sobre atendimento ou suporte após a compra?,atendimento_loja
+P22,equipe,tema,"O que dizem sobre trocas, devoluções ou arrependimento da compra?",atendimento_loja
+P23,equipe,tema,Há reclamações de clientes de SP sobre atraso na entrega?,atraso_entrega|nao_recebido
+P26,equipe,tema,Os clientes elogiam a entrega rápida e o cumprimento do prazo?,entrega_rapida
+P29,equipe,tema,O que os clientes relatam sobre atraso na entrega no segundo semestre de 2017?,atraso_entrega|nao_recebido
+C01,t07,tema,Pedidos que chegaram faltando itens,entrega_incompleta
+C02,t07,tema,Comprei vários produtos e só recebi parte deles,entrega_incompleta
+C03,t07,tema,Clientes que receberam menos unidades do que pagaram,entrega_incompleta
+C04,t07,tema,Faltou peça ou acessório no produto entregue,entrega_incompleta
+C05,t07,tema,A encomenda veio incompleta,entrega_incompleta
+C06,t07,tema,Clientes que nunca receberam o pedido,nao_recebido
+C07,t07,tema,Produto não foi entregue até hoje,nao_recebido
+C08,t07,tema,O rastreio diz que foi entregue mas não chegou nada,nao_recebido
+C09,t07,tema,Estou esperando minha compra e ela não aparece,nao_recebido
+C10,t07,tema,Encomenda extraviada pelos Correios,nao_recebido
+C11,t07,tema,Mandaram um produto diferente do que eu comprei,produto_errado
+C12,t07,tema,A cor ou o tamanho recebido não era o que pedi,produto_errado
+C13,t07,tema,O item entregue não corresponde ao anúncio,produto_errado
+C14,t07,tema,Recebi outro modelo no lugar do que escolhi,produto_errado
+C15,t07,tema,Produto bem diferente da foto do site,produto_errado
+C16,t07,tema,Produto chegou quebrado,produto_defeito
+C17,t07,tema,O aparelho parou de funcionar poucos dias depois,produto_defeito
+C18,t07,tema,Item veio com defeito de fábrica,produto_defeito
+C19,t07,tema,Mercadoria danificada no transporte,produto_defeito
+C20,t07,tema,Veio amassado e riscado,produto_defeito
+C21,t07,tema,A entrega demorou muito mais do que o prometido,atraso_entrega
+C22,t07,tema,O pedido chegou depois da data prevista,atraso_entrega
+C23,t07,tema,O prazo de entrega foi descumprido,atraso_entrega
+C24,t07,tema,Demora excessiva para o produto chegar,atraso_entrega
+C25,t07,tema,Clientes reclamando de lentidão na entrega,atraso_entrega
+C26,t07,tema,A loja não responde minhas mensagens,atendimento_loja
+C27,t07,tema,Dificuldade para conseguir o reembolso,atendimento_loja
+C28,t07,tema,Pedi para cancelar a compra e ninguém resolveu,atendimento_loja
+C29,t07,tema,Como foi o atendimento do vendedor,atendimento_loja
+C30,t07,tema,Problemas para devolver ou trocar o produto,atendimento_loja
+C31,t07,tema,Material de baixa qualidade,qualidade_produto
+C32,t07,tema,Acabamento mal feito,qualidade_produto
+C33,t07,tema,O produto é menor do que parecia,qualidade_produto
+C34,t07,tema,Tecido fino e frágil,qualidade_produto
+C35,t07,tema,Produto resistente e bem feito,qualidade_produto
+C36,t07,tema,O frete é caro demais,preco_frete
+C37,t07,tema,Ótimo custo-benefício,preco_frete
+C38,t07,tema,Preço justo pelo que entrega,preco_frete
+C39,t07,tema,Vale a pena pelo valor pago,preco_frete
+C40,t07,tema,Comprei em promoção e valeu,preco_frete
+C41,t07,tema,Chegou antes do prazo,entrega_rapida
+C42,t07,tema,Entrega super rápida,entrega_rapida
+C43,t07,tema,Recebi muito antes da data prevista,entrega_rapida
+C44,t07,tema,O pedido chegou no prazo combinado,entrega_rapida
+C45,t07,tema,Envio ágil e pontual,entrega_rapida
+P12,equipe,manual,Os clientes relatam golpes ou fraudes nas compras?,
+P15,equipe,manual,O que os clientes relatam sobre problemas no pagamento da compra?,
+P21,equipe,manual,Os clientes reclamam de embalagem danificada ou mal feita?,
+P24,equipe,manual,"Os clientes mencionam cheiro ruim, odor ou produto vencido?",
+P25,equipe,manual,O que falam sobre vendedor ou marketplace (terceiros) vs a loja?,
+M01,t07,manual,A nota fiscal não veio junto com o produto,
+M02,t07,manual,Produto falsificado ou que não parece original,
+M03,t07,manual,Voltagem errada: pedi 220V e veio 110V,
+M04,t07,manual,A roupa não serviu por causa do tamanho,
+M05,t07,manual,Móvel difícil de montar ou sem manual de montagem,
