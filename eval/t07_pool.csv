@@ -1,0 +1,151 @@
+id,consulta,modelo,rank,review_id,texto
+P12,Os clientes relatam golpes ou fraudes nas compras?,intfloat/multilingual-e5-base,1,7b1f6c0a481e190e038965bbbbe3af9b,Produto com defeito. Furado. Desejo devolução do dinheiro.
+P12,Os clientes relatam golpes ou fraudes nas compras?,intfloat/multilingual-e5-base,2,a185264a12a28a8596f1b7fe3ad474bd,"Não recomendo, golpe!!!. Não me enviaram o produto, só me enviaram uma nota fiscal estou sendo roubado e ninguém resolve meu problema."
+P12,Os clientes relatam golpes ou fraudes nas compras?,intfloat/multilingual-e5-base,3,8edf7fb0249ccbee18ac0e6a261440dc,Como podem mandar um produto errado ? Não existe conferências? Loja falha
+P12,Os clientes relatam golpes ou fraudes nas compras?,intfloat/multilingual-e5-base,4,b28309e8253951a954123e039d3242f7,Produto não foi entregue. Não foi enviada nota fiscal. Telefone para reclamação não funciona.
+P12,Os clientes relatam golpes ou fraudes nas compras?,intfloat/multilingual-e5-base,5,07a7ae412ae1dbf9c10e23bc9d88af54,"Uma negação. Falta de respeito com o cliente já faz mais de um mês que fiz a compra e até hoje não recebi meu produto, infelizmente nunca mais voltarei a comprar neste site."
+P15,O que os clientes relatam sobre problemas no pagamento da compra?,intfloat/multilingual-e5-base,1,b2253bbad8b5eac2bdc94b8bfa401938,Até esta data não recebi um posicionamento sobre a entrega do produto comprado. Apenas enviaram um email dizendo que houve problema na entrega e até agora nada
+P15,O que os clientes relatam sobre problemas no pagamento da compra?,intfloat/multilingual-e5-base,2,98938945a4aa26f21a5d2c3a6112b745,"Não tive problemas com a entrega nem com o produto, o problema foi com o pagamento que passou 2 vezes no meu cartao, fiz uma reclamação e não tive resposta. Ainda estou aguardando."
+P15,O que os clientes relatam sobre problemas no pagamento da compra?,intfloat/multilingual-e5-base,3,b5f1ecee3ada2c5b5fa05ca47b576bbc,"Cliente super insatisfeit. Quero informar que acho uma falta de respeito com consumir final ficar aguardando algo que já foi pago e não entregue, favor resolver essa situação urgente ou estarei acionando minha ADVOGADA."
+P15,O que os clientes relatam sobre problemas no pagamento da compra?,intfloat/multilingual-e5-base,4,42a3a3e2b79465364e24f6f4c642bc23,"Em partes. Sou cliente há anos, porém sempre há divergências e problemas na entrega, consta como produto entregue, porém foi entregue apenas 1 produto, aguardo solução!"
+P15,O que os clientes relatam sobre problemas no pagamento da compra?,intfloat/multilingual-e5-base,5,c9035725ab33e5ff76de4cb2b28df64f,"A gente compra e espera receber o que comprou e quando chega está errado, gera toda um incômodo de efetuar troca. Só espera que a troca seja ita de forma correta."
+P21,Os clientes reclamam de embalagem danificada ou mal feita?,intfloat/multilingual-e5-base,1,38293117d9b01208d05a0cc29a90ad08,Produto entregue danifica. O produto foi entregue quebrado. nem foi preciso abrir a embalagem para perceber que o mesmo nao foi embalado corretamente
+P21,Os clientes reclamam de embalagem danificada ou mal feita?,intfloat/multilingual-e5-base,2,b190c1c98294a0aa6beca27daff6886c,Produto mal embalado. Produto chegou com risco e manchado.
+P21,Os clientes reclamam de embalagem danificada ou mal feita?,intfloat/multilingual-e5-base,3,76ca059c93cf817220529ead9d9a2064,"O produto veio em duas oportunidades, mal embalado, com diversas avarias na pintura, algumas peças tortas. Precisam melhorar a embalagem e colocar avisos de ""Frágil"" ou não pisar."
+P21,Os clientes reclamam de embalagem danificada ou mal feita?,intfloat/multilingual-e5-base,4,6afb9abc15ff32b17abc8f3f819ade1f,"A embalagem veio danificada assim como o produto, quebrado. Entrei em contato com a loja e ainda não tive nenhuma resposta."
+P21,Os clientes reclamam de embalagem danificada ou mal feita?,intfloat/multilingual-e5-base,5,c234fb41ba6510ff090beeb2462c0499,Produto mal embalado. Produto chegou quebrado é material não é bom
+P24,"Os clientes mencionam cheiro ruim, odor ou produto vencido?",intfloat/multilingual-e5-base,1,3c8c1b94a701c4b258bccfca775a62eb,Odor ruim. O produto apresenta um odor muito forte.
+P24,"Os clientes mencionam cheiro ruim, odor ou produto vencido?",intfloat/multilingual-e5-base,2,7b1f6c0a481e190e038965bbbbe3af9b,Produto com defeito. Furado. Desejo devolução do dinheiro.
+P24,"Os clientes mencionam cheiro ruim, odor ou produto vencido?",intfloat/multilingual-e5-base,3,6698b8cb16ed759ce466fefa70c941b7,Avaliação. Loja recomendada. Produto de péssima qualidade.
+P24,"Os clientes mencionam cheiro ruim, odor ou produto vencido?",intfloat/multilingual-e5-base,4,c234fb41ba6510ff090beeb2462c0499,Produto mal embalado. Produto chegou quebrado é material não é bom
+P24,"Os clientes mencionam cheiro ruim, odor ou produto vencido?",intfloat/multilingual-e5-base,5,c0c8b2665b7bb77745c3a3dbcdb0fa5d,Produto com cheiro agrádavel. Aguardando o resultado.
+P25,O que falam sobre vendedor ou marketplace (terceiros) vs a loja?,intfloat/multilingual-e5-base,1,29f4977670ebc945a61684ec7cc46278,Mercadoria
+P25,O que falam sobre vendedor ou marketplace (terceiros) vs a loja?,intfloat/multilingual-e5-base,2,04d7331c3445dead49d65a0e58f72ae3,Ofertado/Pago lannister. Não interessa se opera Market Place. A compra foi feita no site da lannister e pago para lannister. Se tiver que ajuizar vai ser contra lannister e lá faça o regresso contra o fornecedor.
+P25,O que falam sobre vendedor ou marketplace (terceiros) vs a loja?,intfloat/multilingual-e5-base,3,faf9562f00cc9e7c091b667170e215fb,Difícil diálogo com vendedor
+P25,O que falam sobre vendedor ou marketplace (terceiros) vs a loja?,intfloat/multilingual-e5-base,4,d69c2b8f0405606eeb370254a78ec14d,Boa Loja. Excelente loja
+P25,O que falam sobre vendedor ou marketplace (terceiros) vs a loja?,intfloat/multilingual-e5-base,5,b736ff4204044e49e39062584d06fa74,A loja anuncia um produto e entrega outro.
+M01,A nota fiscal não veio junto com o produto,intfloat/multilingual-e5-base,1,ecf4b5b8f37cf9690b94abf256ccdea2,Faltou a nota fiscal
+M01,A nota fiscal não veio junto com o produto,intfloat/multilingual-e5-base,2,58dd0d28cb716f7c0f200a4321f12b9e,faltou cupom fiscal
+M01,A nota fiscal não veio junto com o produto,intfloat/multilingual-e5-base,3,7c449392c607b86cd12c7eb751d7ba71,PRODUTO NÃO CHEGOU
+M01,A nota fiscal não veio junto com o produto,intfloat/multilingual-e5-base,4,583bb67c7800704e4f9bc32459d7aecf,Produto veio incompleto
+M01,A nota fiscal não veio junto com o produto,intfloat/multilingual-e5-base,5,161a5fbb76adb8ba80008e5053308b79,O produto chegou incompleto
+M02,Produto falsificado ou que não parece original,intfloat/multilingual-e5-base,1,c4f9fc857bd9e8a92ffd9a7f7e2070d2,O produto é falsificado.
+M02,Produto falsificado ou que não parece original,intfloat/multilingual-e5-base,2,7f88572b1b1cd27bedc3ee707cb69712,"Fragancia muito fraca, produto aparenta ser falsificado."
+M02,Produto falsificado ou que não parece original,intfloat/multilingual-e5-base,3,6834e43bf94ec788e0617df3fdf709b5,Produto não original. Produto não informado como paralelo/réplica
+M02,Produto falsificado ou que não parece original,intfloat/multilingual-e5-base,4,56097c767781640478e1b6b200389a4e,Produto errado
+M02,Produto falsificado ou que não parece original,intfloat/multilingual-e5-base,5,eeba1449347bac009bab97e5109023a8,Produto nao é original.
+M03,Voltagem errada: pedi 220V e veio 110V,intfloat/multilingual-e5-base,1,c78a6fcd085d678131199a80be88fec6,"Produto errado. Veio com a voltagem 220,sendo que pedi 110"
+M03,Voltagem errada: pedi 220V e veio 110V,intfloat/multilingual-e5-base,2,372109711a4a21b7615179a7b4da0fc1,Produto entregue errado. A voltagem que pedi era de 220...E não 110 como veio
+M03,Voltagem errada: pedi 220V e veio 110V,intfloat/multilingual-e5-base,3,68527c158a36d2fd93c284664ccc6dcc,Pedi voltagem 110v enviaram 220v não recomendo
+M03,Voltagem errada: pedi 220V e veio 110V,intfloat/multilingual-e5-base,4,29903a158e770c3eea9748a460499452,Veio outra voltagem. Conprei um de 220v e quando chegou era 110v
+M03,Voltagem errada: pedi 220V e veio 110V,intfloat/multilingual-e5-base,5,a16d7831ada4217c64f89225d1fd000e,Comprei com a voltagem 220 e veio 110v
+M04,A roupa não serviu por causa do tamanho,intfloat/multilingual-e5-base,1,5f938e5f5f2e9a75710b54feeb9ea610,Médio. A peça não serviu
+M04,A roupa não serviu por causa do tamanho,intfloat/multilingual-e5-base,2,94caa515a6d2a07fbf40642d4a70a026,foi entregue so q nao esta funcionando
+M04,A roupa não serviu por causa do tamanho,intfloat/multilingual-e5-base,3,361001c4649331f738b14d63183d259c,produto entregue nao funciona
+M04,A roupa não serviu por causa do tamanho,intfloat/multilingual-e5-base,4,fa4e9223a55e26f5c5815b99e739294a,produto improprio para consumo pois está mofado
+M04,A roupa não serviu por causa do tamanho,intfloat/multilingual-e5-base,5,933dfa39094550ecc5f4f95bb63f2260,PRODUTO NÃO FUNCIONA
+M05,Móvel difícil de montar ou sem manual de montagem,intfloat/multilingual-e5-base,1,2decd5d691ecc931cecfab39686f8cad,Difícil de montar
+M05,Móvel difícil de montar ou sem manual de montagem,intfloat/multilingual-e5-base,2,a4bfe96c27ed6acff19bb53e2b5b9700,Tinha que vir com manual de montagem
+M05,Móvel difícil de montar ou sem manual de montagem,intfloat/multilingual-e5-base,3,f3d26f7aa403b2bbc6572ebdd11c9516,"Produto sem manual de mon. Gostei do móvel mas é a primeira vez que eu vejo um móvel ser entregue sem manual de montagem. Apesar de pequeno, nininguém é obrigado a saber montar. Eu consegui, mas muita gente pode não conseguir."
+M05,Móvel difícil de montar ou sem manual de montagem,intfloat/multilingual-e5-base,4,c74e7e7e7df2d5b606f54836042b3e13,tranca moto. produto fraco
+M05,Móvel difícil de montar ou sem manual de montagem,intfloat/multilingual-e5-base,5,f677a419ee4910ae12bf8cb73dc0d332,Faltaram os cabos e o manual
+P12,Os clientes relatam golpes ou fraudes nas compras?,intfloat/multilingual-e5-small,1,0e56fbbae856d45ed41939f7b292cf92,Aguardando a entrega ou a devolução do dinheiro. Irei reavaliar após a resolução da compra.
+P12,Os clientes relatam golpes ou fraudes nas compras?,intfloat/multilingual-e5-small,2,3e0f1062f76a97d22d13c4156c69ef03,Gostaria de saber a quem e como reclamar para receber o produto correto. Grata.
+P12,Os clientes relatam golpes ou fraudes nas compras?,intfloat/multilingual-e5-small,3,42c5a94d8d1d9b6d72c18484a32f8b7b,Sou cliente e minhas compras sempre chegaram no prazo
+P12,Os clientes relatam golpes ou fraudes nas compras?,intfloat/multilingual-e5-small,4,137e1816895e26d95fb3467e6bd322cf,sempre compro e nao tenho reclamações chato tem q avalir em 160 caracteres heim?????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
+P12,Os clientes relatam golpes ou fraudes nas compras?,intfloat/multilingual-e5-small,5,8e5408e78acc81f872afcbcd6e30b45d,"Atenciosos,ligam para dar acompanhamento. Bom prazo de validade. Demorou de chegar. Agora é verificar a qualidade do produto."
+P15,O que os clientes relatam sobre problemas no pagamento da compra?,intfloat/multilingual-e5-small,1,62fc4a26d6a47c33586e4aebe50f833a,"Após transtornos com a primeira compra recebi um vale da loja para que outra compra fosse realizada com o valor, porém, no segundo pedido com o valor do vale houve um problema no pagamento"
+P15,O que os clientes relatam sobre problemas no pagamento da compra?,intfloat/multilingual-e5-small,2,9aa185c9a1ecb5d47cdb615495054e6b,"Problema no pagamento. Tive um problema na forma de pagamento, segundo os meus pais, o cartão foi ""clonado"" e apareceu outra valor, com isso tive que cancelar o cartão, não foi uma situação agradável."
+P15,O que os clientes relatam sobre problemas no pagamento da compra?,intfloat/multilingual-e5-small,3,e226f36a65a19539e145acad41b319e8,Oque aconteceu com o meu pedido ? Me mandaram uma peça totalmente diferente da qual eu comprei ; nao consigo falar com ninguem nem por tel nem por email; lannister como vamoresolver isso?
+P15,O que os clientes relatam sobre problemas no pagamento da compra?,intfloat/multilingual-e5-small,4,b5f1ecee3ada2c5b5fa05ca47b576bbc,"Cliente super insatisfeit. Quero informar que acho uma falta de respeito com consumir final ficar aguardando algo que já foi pago e não entregue, favor resolver essa situação urgente ou estarei acionando minha ADVOGADA."
+P15,O que os clientes relatam sobre problemas no pagamento da compra?,intfloat/multilingual-e5-small,5,e2e59a0ed2c0ca5f7472c48781e762fc,Bom dia! Como faço para cancelar esta compra? Cansei de esperar o dinheiro do cartão já paguei. Preciso que vocês me ajudem. Obrigado!!
+P21,Os clientes reclamam de embalagem danificada ou mal feita?,intfloat/multilingual-e5-small,1,1274b506a5525dd603abe261d5c71ed1,Recebi o produto avariado. A capa veio danificada. Colada. Já abri reclamação e aguardo o reembolso do meu dinheiro.
+P21,Os clientes reclamam de embalagem danificada ou mal feita?,intfloat/multilingual-e5-small,2,bacf1c70ccb3d403fe6759179502fb69,"Serviço de amador. O produto foi entregue sem estar na embalagem adequada, o que danificou o produto."
+P21,Os clientes reclamam de embalagem danificada ou mal feita?,intfloat/multilingual-e5-small,3,5a938aee83592016ffd28b9ded3fa935,"Embalagem Danificada. Apesar da entrega dentro do prazo, a embalagem estava levemente danificada."
+P21,Os clientes reclamam de embalagem danificada ou mal feita?,intfloat/multilingual-e5-small,4,38293117d9b01208d05a0cc29a90ad08,Produto entregue danifica. O produto foi entregue quebrado. nem foi preciso abrir a embalagem para perceber que o mesmo nao foi embalado corretamente
+P21,Os clientes reclamam de embalagem danificada ou mal feita?,intfloat/multilingual-e5-small,5,3e0f1062f76a97d22d13c4156c69ef03,Gostaria de saber a quem e como reclamar para receber o produto correto. Grata.
+P24,"Os clientes mencionam cheiro ruim, odor ou produto vencido?",intfloat/multilingual-e5-small,1,20adf19b860e4a86fff6cde10b5f6ce0,O produto veio com muito cheiro de tinta.
+P24,"Os clientes mencionam cheiro ruim, odor ou produto vencido?",intfloat/multilingual-e5-small,2,5fa4fb44964b47967a99bef856ba418d,Só posso fazer avaliação depois que receber o meu produto!!! No momento todas as respostas são negativa
+P24,"Os clientes mencionam cheiro ruim, odor ou produto vencido?",intfloat/multilingual-e5-small,3,cdac7a85b1a935ef70220dc2305651f1,Não recebi os produtos e ainda veio um produto veio errado ainda to esperando o retorno de vcs?
+P24,"Os clientes mencionam cheiro ruim, odor ou produto vencido?",intfloat/multilingual-e5-small,4,3c8c1b94a701c4b258bccfca775a62eb,Odor ruim. O produto apresenta um odor muito forte.
+P24,"Os clientes mencionam cheiro ruim, odor ou produto vencido?",intfloat/multilingual-e5-small,5,8e5408e78acc81f872afcbcd6e30b45d,"Atenciosos,ligam para dar acompanhamento. Bom prazo de validade. Demorou de chegar. Agora é verificar a qualidade do produto."
+P25,O que falam sobre vendedor ou marketplace (terceiros) vs a loja?,intfloat/multilingual-e5-small,1,901213b1b7d11e99a48bb9be98465067,Chegou 1 produto e o outro nao ! Quero saber pq se esta os dois no mesmo vendedor e mesmo pedido... por favor
+P25,O que falam sobre vendedor ou marketplace (terceiros) vs a loja?,intfloat/multilingual-e5-small,2,9b225b47f2de485de0744bc1a80c4b43,0. A loja vende um produto muito caro mas a qualidade é péssima
+P25,O que falam sobre vendedor ou marketplace (terceiros) vs a loja?,intfloat/multilingual-e5-small,3,8edf7fb0249ccbee18ac0e6a261440dc,Como podem mandar um produto errado ? Não existe conferências? Loja falha
+P25,O que falam sobre vendedor ou marketplace (terceiros) vs a loja?,intfloat/multilingual-e5-small,4,9610f57f47b4affb7d0e05f7f030021f,Eu recebi um produto mas eu não comprei somente um produto ou o outro produto que comprei é de outra loja?
+P25,O que falam sobre vendedor ou marketplace (terceiros) vs a loja?,intfloat/multilingual-e5-small,5,e9582fbb8e37ed54b5e546bc797629fc,"Pior experiência. Evite!. Após longa espera, recebi produto errado (cor diferente), com marcas de manuseio (parecendo produto usado), embalagem sem lacre e amassada. Marketplace = juntos na venda, ausentes no problema."
+M01,A nota fiscal não veio junto com o produto,intfloat/multilingual-e5-small,1,44b8a6c8d733bf0030c456178fc4fada,Não veio a nota fiscal com o produto
+M01,A nota fiscal não veio junto com o produto,intfloat/multilingual-e5-small,2,0c16080193a563918ba9957c1b676830,produto nao veio nem nota foi emitida
+M01,A nota fiscal não veio junto com o produto,intfloat/multilingual-e5-small,3,75cb732da2412a31c908938856de7e54,Recebi o produto sem a respectiva Nota Fiscal
+M01,A nota fiscal não veio junto com o produto,intfloat/multilingual-e5-small,4,aa27bdde236e6f9db947ba932d59d1ef,"Produto veio sem a caixa original , riscado e sem a nota fiscal ."
+M01,A nota fiscal não veio junto com o produto,intfloat/multilingual-e5-small,5,302d8dc021829cefd5709101965502c6,NOTA FISCAL E MERCADORIA NÃO CORRESPONDE AO PRODUTO DO PEDIDO
+M02,Produto falsificado ou que não parece original,intfloat/multilingual-e5-small,1,c4f9fc857bd9e8a92ffd9a7f7e2070d2,O produto é falsificado.
+M02,Produto falsificado ou que não parece original,intfloat/multilingual-e5-small,2,d2685d708ee3a49340a50dd2184deadc,PRODUTO NAO ESTA CORRETO
+M02,Produto falsificado ou que não parece original,intfloat/multilingual-e5-small,3,db8d57be56f47bdaa9a09f1d79e4bd8f,Produto Falsificado sem selo
+M02,Produto falsificado ou que não parece original,intfloat/multilingual-e5-small,4,eeba1449347bac009bab97e5109023a8,Produto nao é original.
+M02,Produto falsificado ou que não parece original,intfloat/multilingual-e5-small,5,0c16080193a563918ba9957c1b676830,produto nao veio nem nota foi emitida
+M03,Voltagem errada: pedi 220V e veio 110V,intfloat/multilingual-e5-small,1,c78a6fcd085d678131199a80be88fec6,"Produto errado. Veio com a voltagem 220,sendo que pedi 110"
+M03,Voltagem errada: pedi 220V e veio 110V,intfloat/multilingual-e5-small,2,a16d7831ada4217c64f89225d1fd000e,Comprei com a voltagem 220 e veio 110v
+M03,Voltagem errada: pedi 220V e veio 110V,intfloat/multilingual-e5-small,3,372109711a4a21b7615179a7b4da0fc1,Produto entregue errado. A voltagem que pedi era de 220...E não 110 como veio
+M03,Voltagem errada: pedi 220V e veio 110V,intfloat/multilingual-e5-small,4,68527c158a36d2fd93c284664ccc6dcc,Pedi voltagem 110v enviaram 220v não recomendo
+M03,Voltagem errada: pedi 220V e veio 110V,intfloat/multilingual-e5-small,5,bc44724238658e1385b44181ccc68891,Comprei o produto na voltagem 220 e veio na voltagem 110. Como faço para resolver isso?
+M04,A roupa não serviu por causa do tamanho,intfloat/multilingual-e5-small,1,870c5f4c320807e99256e64a167a149e,Produto não funcionou corretamente
+M04,A roupa não serviu por causa do tamanho,intfloat/multilingual-e5-small,2,e23827c46b97818041bbac85e5c09c0a,A COMPRA FOI CANCELADA PELA lannister PELO FATO DO PARCEIRO NÃO TER ENTREGUE
+M04,A roupa não serviu por causa do tamanho,intfloat/multilingual-e5-small,3,cd2ab8fd9aa705fe70e7d6ad7182d765,GOSTEI. PRODUTO CHEGOU NO PRAZO CERTO
+M04,A roupa não serviu por causa do tamanho,intfloat/multilingual-e5-small,4,9183ee1d6da9be1da5e0776fc4b023d6,NAO CHEGOU POR PROBLEMAS NOS CORREIOS
+M04,A roupa não serviu por causa do tamanho,intfloat/multilingual-e5-small,5,3d21c7adfde003d678005546c499f2c0,Falta a entrega da Cúpula para abajur modelo tradicional.
+M05,Móvel difícil de montar ou sem manual de montagem,intfloat/multilingual-e5-small,1,f3d26f7aa403b2bbc6572ebdd11c9516,"Produto sem manual de mon. Gostei do móvel mas é a primeira vez que eu vejo um móvel ser entregue sem manual de montagem. Apesar de pequeno, nininguém é obrigado a saber montar. Eu consegui, mas muita gente pode não conseguir."
+M05,Móvel difícil de montar ou sem manual de montagem,intfloat/multilingual-e5-small,2,644fb639a68e98008f0fda5496225f92,pessimo. vei faltando uma peca do suporte e nao consigo monta-lo
+M05,Móvel difícil de montar ou sem manual de montagem,intfloat/multilingual-e5-small,3,310a8cff23b1b786fe266d1b350b91a2,Faltou porca e rever manual
+M05,Móvel difícil de montar ou sem manual de montagem,intfloat/multilingual-e5-small,4,2decd5d691ecc931cecfab39686f8cad,Difícil de montar
+M05,Móvel difícil de montar ou sem manual de montagem,intfloat/multilingual-e5-small,5,27bb6d509932b0d5f18cb41e458496d6,Produto nao entregue no prazo. Dificuldade de rastreio
+P12,Os clientes relatam golpes ou fraudes nas compras?,BAAI/bge-m3,1,a185264a12a28a8596f1b7fe3ad474bd,"Não recomendo, golpe!!!. Não me enviaram o produto, só me enviaram uma nota fiscal estou sendo roubado e ninguém resolve meu problema."
+P12,Os clientes relatam golpes ou fraudes nas compras?,BAAI/bge-m3,2,1e4e44c87f43ec7135839c9d87e30f99,Não entregaram o produto comprado
+P12,Os clientes relatam golpes ou fraudes nas compras?,BAAI/bge-m3,3,d19077b8280ccd4c16d65f07bd5762ab,"algumas pessoas ja reclamaram dessa loja,eles dizem que tive foi sorte.."
+P12,Os clientes relatam golpes ou fraudes nas compras?,BAAI/bge-m3,4,eeec16a7667595b6bdd2e6b4c6d47216,Comprei um produto e foi entregue outro
+P12,Os clientes relatam golpes ou fraudes nas compras?,BAAI/bge-m3,5,6badbe99a91ea5c5934b7b824f7c44e4,Fui enganado!. Comprei um produto e vocês me entregaram outro.
+P15,O que os clientes relatam sobre problemas no pagamento da compra?,BAAI/bge-m3,1,486ba73d63f6d91dbdc5160397c7420d,Ja comprei outras vezes mas estou tendo problemas nessa compra
+P15,O que os clientes relatam sobre problemas no pagamento da compra?,BAAI/bge-m3,2,5b4de63e88bbb6daf51200bbc71e7620,Gostaria de saber o motivo do não recebimento do produto que paguei.
+P15,O que os clientes relatam sobre problemas no pagamento da compra?,BAAI/bge-m3,3,1e4e44c87f43ec7135839c9d87e30f99,Não entregaram o produto comprado
+P15,O que os clientes relatam sobre problemas no pagamento da compra?,BAAI/bge-m3,4,f37f5e8a661a4f8ef464b7b0207675a3,nao recebi o produto e estou com problema para receber o dinheiro de volta
+P15,O que os clientes relatam sobre problemas no pagamento da compra?,BAAI/bge-m3,5,d9d6cdf1d4f971b3ee0180d58739df39,"Não recebi o produto, alegaram problemas, fiquei sem entender."
+P21,Os clientes reclamam de embalagem danificada ou mal feita?,BAAI/bge-m3,1,f43672285e45de76d4355a6847b980bc,A embalagem chegou toda danificada. Tanto embrulho quanto a caixa do produto.
+P21,Os clientes reclamam de embalagem danificada ou mal feita?,BAAI/bge-m3,2,4a404516ca62f52dade7b00eb2accf72,Recebi o produto danificado
+P21,Os clientes reclamam de embalagem danificada ou mal feita?,BAAI/bge-m3,3,0f8d635460c4b82123f33aa580b59c0f,Produto com avarias e péssima qualidade
+P21,Os clientes reclamam de embalagem danificada ou mal feita?,BAAI/bge-m3,4,c234fb41ba6510ff090beeb2462c0499,Produto mal embalado. Produto chegou quebrado é material não é bom
+P21,Os clientes reclamam de embalagem danificada ou mal feita?,BAAI/bge-m3,5,7eb528b3f5718e82b6fcf45eaa88e2f1,"Produto chegou, mas mal embalado, caixa quase aberta."
+P24,"Os clientes mencionam cheiro ruim, odor ou produto vencido?",BAAI/bge-m3,1,3c8c1b94a701c4b258bccfca775a62eb,Odor ruim. O produto apresenta um odor muito forte.
+P24,"Os clientes mencionam cheiro ruim, odor ou produto vencido?",BAAI/bge-m3,2,1b9f9bcf8ff376c6946aa7ff737930c9,O produto não é bom.
+P24,"Os clientes mencionam cheiro ruim, odor ou produto vencido?",BAAI/bge-m3,3,8a13b94771322ead7d4bf5eb986eb843,Produtos tem cara de falsificado. Não igual aos que tenho importados. Mais é cheiroso.
+P24,"Os clientes mencionam cheiro ruim, odor ou produto vencido?",BAAI/bge-m3,4,2f40304a929f8e55702a1f25dbe7f029,Encaminhou produto vencido e não respondeu minha reclamação
+P24,"Os clientes mencionam cheiro ruim, odor ou produto vencido?",BAAI/bge-m3,5,98272cc7e9dd4d8776f34247a3f07449,Qualidade do produto é ruim.
+P25,O que falam sobre vendedor ou marketplace (terceiros) vs a loja?,BAAI/bge-m3,1,8e7d6637cd82be535e19988b741418e0,Falta entre lojas e clientes
+P25,O que falam sobre vendedor ou marketplace (terceiros) vs a loja?,BAAI/bge-m3,2,0b5ee5955a27cf436f2c69c32e95f5b6,avaliação do vendedor
+P25,O que falam sobre vendedor ou marketplace (terceiros) vs a loja?,BAAI/bge-m3,3,940564992edf93c0efb22731a3a754bc,a loja e boa para compra mas ruim pra resoluções dos problemas
+P25,O que falam sobre vendedor ou marketplace (terceiros) vs a loja?,BAAI/bge-m3,4,04d7331c3445dead49d65a0e58f72ae3,Ofertado/Pago lannister. Não interessa se opera Market Place. A compra foi feita no site da lannister e pago para lannister. Se tiver que ajuizar vai ser contra lannister e lá faça o regresso contra o fornecedor.
+P25,O que falam sobre vendedor ou marketplace (terceiros) vs a loja?,BAAI/bge-m3,5,32d51de57eef882c59f6d29c695a5acf,Ótimo a loja em sua responsabilidade com o comprador
+M01,A nota fiscal não veio junto com o produto,BAAI/bge-m3,1,44b8a6c8d733bf0030c456178fc4fada,Não veio a nota fiscal com o produto
+M01,A nota fiscal não veio junto com o produto,BAAI/bge-m3,2,d10f1d7bdedb7284ce7f788562973fa1,Não veio a nota fiscal do produto.
+M01,A nota fiscal não veio junto com o produto,BAAI/bge-m3,3,96b0620a8e09ce02f2b1d52b15af1442,"Recebi o produto, porém, veio sem nota fiscal do produto."
+M01,A nota fiscal não veio junto com o produto,BAAI/bge-m3,4,75cb732da2412a31c908938856de7e54,Recebi o produto sem a respectiva Nota Fiscal
+M01,A nota fiscal não veio junto com o produto,BAAI/bge-m3,5,a0c74f3f1948b2b6ad6c5b92484308e2,"Bom dia!!! Não veio a nota fiscal com produto, Quero o porque??"
+M02,Produto falsificado ou que não parece original,BAAI/bge-m3,1,b189eed9dbfcac7862dd6a873dd72b8e,Foi vendido um produto como sendo original e veio uma imitação.
+M02,Produto falsificado ou que não parece original,BAAI/bge-m3,2,cca9feb17a809d65885d0884617f132d,O produto eh falsificado. Não eh o anunciado.
+M02,Produto falsificado ou que não parece original,BAAI/bge-m3,3,c4f9fc857bd9e8a92ffd9a7f7e2070d2,O produto é falsificado.
+M02,Produto falsificado ou que não parece original,BAAI/bge-m3,4,3d19852c23fff17c55a4e8f29aa71b9e,Pessimo. Meu produto veio falsificado.
+M02,Produto falsificado ou que não parece original,BAAI/bge-m3,5,7f45121d39a6318dff3f2fef124e542a,"Qualidade ruim, produto não é original."
+M03,Voltagem errada: pedi 220V e veio 110V,BAAI/bge-m3,1,a16d7831ada4217c64f89225d1fd000e,Comprei com a voltagem 220 e veio 110v
+M03,Voltagem errada: pedi 220V e veio 110V,BAAI/bge-m3,2,29903a158e770c3eea9748a460499452,Veio outra voltagem. Conprei um de 220v e quando chegou era 110v
+M03,Voltagem errada: pedi 220V e veio 110V,BAAI/bge-m3,3,c78a6fcd085d678131199a80be88fec6,"Produto errado. Veio com a voltagem 220,sendo que pedi 110"
+M03,Voltagem errada: pedi 220V e veio 110V,BAAI/bge-m3,4,bc44724238658e1385b44181ccc68891,Comprei o produto na voltagem 220 e veio na voltagem 110. Como faço para resolver isso?
+M03,Voltagem errada: pedi 220V e veio 110V,BAAI/bge-m3,5,372109711a4a21b7615179a7b4da0fc1,Produto entregue errado. A voltagem que pedi era de 220...E não 110 como veio
+M04,A roupa não serviu por causa do tamanho,BAAI/bge-m3,1,0a20b84f9811ce4b4568abe3f54db7ea,"Produto bom, loja boa, mas ficou pequeno e não me serviu"
+M04,A roupa não serviu por causa do tamanho,BAAI/bge-m3,2,5f938e5f5f2e9a75710b54feeb9ea610,Médio. A peça não serviu
+M04,A roupa não serviu por causa do tamanho,BAAI/bge-m3,3,9b32eced9364125509656959cea1b2bc,"pena que ficou pequena. teria que ter a medida certa e a cor, porque não gostei da cor"
+M04,A roupa não serviu por causa do tamanho,BAAI/bge-m3,4,e4e50748d2d683f0d3de0b2089265b22,"As peças vieram conforme solicitado, porem as medidas não vieram conforme o pedido."
+M04,A roupa não serviu por causa do tamanho,BAAI/bge-m3,5,b510ac3990b54833e9d253170d5aff48,Achei o tamanho muito pequeno
+M05,Móvel difícil de montar ou sem manual de montagem,BAAI/bge-m3,1,5cb3843c2a4c06159a9d2c28e5b660c2,O produto veio sem manuai ensinando como montar.
+M05,Móvel difícil de montar ou sem manual de montagem,BAAI/bge-m3,2,35ec6c46de04b2677701e0330fa45ce4,"faltou manual de instrução, algumas peças sem saber o que fazer"
+M05,Móvel difícil de montar ou sem manual de montagem,BAAI/bge-m3,3,6e3ec7184f5630c488940a69cef3516b,Faltou o manual.
+M05,Móvel difícil de montar ou sem manual de montagem,BAAI/bge-m3,4,f3d26f7aa403b2bbc6572ebdd11c9516,"Produto sem manual de mon. Gostei do móvel mas é a primeira vez que eu vejo um móvel ser entregue sem manual de montagem. Apesar de pequeno, nininguém é obrigado a saber montar. Eu consegui, mas muita gente pode não conseguir."
+M05,Móvel difícil de montar ou sem manual de montagem,BAAI/bge-m3,5,2decd5d691ecc931cecfab39686f8cad,Difícil de montar

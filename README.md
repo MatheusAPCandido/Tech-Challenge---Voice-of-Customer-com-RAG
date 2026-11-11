@@ -127,14 +127,17 @@ ou só a parte que existir. Se o título repete a mensagem, ele não é duplicad
 | `entregue` | `True` quando existe data de entrega ao cliente. |
 | `categoria` | Categoria em português do **item mais caro** do pedido (9,8 mil pedidos têm mais de um item). Sem categoria ou pedido sem itens → `sem_categoria` (990 documentos). |
 | `estado` | UF do cliente, sem ausentes. |
-| `tema` | Vazio, preenchido na T08. |
+| `tema` | Assunto principal da review (ver "Temas das avaliações" abaixo). Sem assunto identificado → `outros`. |
 
 ### Saídas extras em `data/gold/`
 
 - `reviews_completo.parquet`: as 41.951 reviews com conteúdo, **antes** da deduplicação de textos, com colunas
   extras (`sentimento`, `categoria_en`, `todas_categorias`, `n_itens`, `valor_pedido`, `estado_seller`,
-  `order_status`) e `qtd_textos_identicos`. Use esta tabela para respostas agregadas, porque ela preserva as contagens.
+  `order_status`), `temas` (todos os temas citados, separados por `|`) e `qtd_textos_identicos`.
+  Use esta tabela para respostas agregadas, porque ela preserva as contagens.
 - `resumo_categorias.parquet`: nota média, % de negativas e % de atraso por categoria.
+- `resumo_temas.parquet`: por tema, quantas reviews o têm como assunto principal, quantas o citam,
+  nota média, % de negativas e % de entregas atrasadas.
 - `_qualidade.json` (também em `data/silver/`): todas as contagens acima, geradas a cada execução.
 
 ### Achado relevante para o RAG
@@ -143,9 +146,115 @@ Entre as entregas atrasadas, **74% das avaliações são negativas (nota 1–2)*
 entrega chega no prazo. O atraso é o principal motor de insatisfação, e `dias_atraso` é o
 metadado mais útil para filtros (`atrasou=True`).
 
+### Temas das avaliações (T08)
+
+Cada review recebe um `tema`: o assunto principal da avaliação. A lista de temas e as regras
+ficam em `src/medallion/temas.py`, e o tema é calculado na camada gold, junto com o resto da preparação.
+
+**Como os temas foram definidos.** Primeiro, agrupamos as 34.912 reviews por similaridade dos
+embeddings (KMeans, 30 grupos) para descobrir os assuntos que a base realmente tem. Os grupos
+misturavam assunto e jeito de escrever (textos só em maiúsculas, textos de uma palavra), então
+serviram para definir a lista de temas, não como rótulo final. Depois, cada review recebe os temas
+cujas palavras-chave aparecem no texto. As regras tratam negação ("sem nenhum defeito", "não
+atrasou", "nada a reclamar") e variações comuns ("comprei 2 e veio só 1", "recebi 2 dos 3").
+Quando a review cita mais de um assunto, o principal é o mais específico ou grave, na ordem da tabela.
+
+| Tema | Descrição | Reviews (principal) | Nota média | % negativas |
+| --- | --- | ---: | ---: | ---: |
+| `entrega_incompleta` | Pedido incompleto: faltou item, unidade ou peça | 2.236 | 1,86 | 72% |
+| `nao_recebido` | Produto não recebido | 3.623 | 1,47 | 86% |
+| `produto_errado` | Produto errado ou diferente do anunciado | 993 | 1,87 | 73% |
+| `produto_defeito` | Produto com defeito, quebrado ou danificado | 1.138 | 2,16 | 63% |
+| `atraso_entrega` | Entrega atrasada ou demorada | 1.301 | 2,66 | 47% |
+| `atendimento_loja` | Atendimento, troca, devolução, cancelamento ou nota fiscal | 2.698 | 3,16 | 41% |
+| `qualidade_produto` | Qualidade, material, acabamento ou tamanho | 3.809 | 4,12 | 13% |
+| `preco_frete` | Preço, custo-benefício ou frete | 1.074 | 4,09 | 13% |
+| `entrega_rapida` | Entrega rápida ou dentro do prazo | 8.485 | 4,74 | 1% |
+| `avaliacao_geral` | Opinião geral, sem assunto específico | 12.484 | 4,50 | 6% |
+| `outros` | Nenhum dos assuntos acima | 4.110 | 3,16 | 37% |
+
+Contagens sobre as 41.951 reviews com conteúdo (`resumo_temas.parquet`, inclui textos repetidos).
+
+**Validação.** Rotulamos à mão duas amostras sorteadas. Na primeira (120 reviews), usada para
+ajustar as regras, o tema principal bate em 96,7% dos casos, número otimista porque as regras foram
+corrigidas olhando essa amostra. Na segunda (100 reviews novas, nunca usadas no ajuste), o acerto
+é de **80%**. Os erros mais comuns são paráfrases que nenhuma palavra-chave cobre ("comprei num dia,
+recebi no outro") e reviews com dois assuntos de peso parecido.
+
+**Alternativas testadas e descartadas.**
+- Comparar cada review com frases-modelo de cada tema usando os embeddings: as similaridades do E5
+  ficam muito próximas entre temas (diferença menor que 0,01), e reviews longas caíam no tema errado.
+- Classificador (regressão logística) sobre os embeddings, treinado com os rótulos das regras: subiu
+  o acerto da amostra nova de 80% para 82% e piorou a de ajuste, uma diferença dentro da margem de
+  erro de 100 exemplos. Ficamos com as regras, que são determinísticas e explicáveis.
+
+**Uso no RAG.** `tema` está no ChromaDB como metadado filtrável (`where={"tema": "produto_defeito"}`)
+e a lista de valores válidos está em `src.medallion.temas.TEMAS`. Para perguntas agregadas ("quais
+os principais motivos de reclamação?"), use `resumo_temas.parquet` ou a coluna `temas` de
+`reviews_completo.parquet`, que preservam as contagens reais.
+
 ### Embeddings e indexação
 
-_TODO (T06/T07): modelo escolhido, comparação e armazenamento no ChromaDB + BM25._
+`python -m src.index` (T06) transforma cada documento de `data/reviews_docs.parquet` em embedding e
+grava dois índices em `chroma_db/` (fora do Git):
+
+- **ChromaDB** (coleção `reviews_olist`, distância de cosseno): id = `review_id`, texto, embedding
+  normalizado e metadados filtráveis (`review_score`, `data_compra`, `ano_mes`, `entregue`, `atrasou`,
+  `dias_atraso`, `categoria`, `estado`, `tema`). O Chroma só compara números e não aceita nulos, por
+  isso existem `ano_mes` (201803) para os filtros de período e `atrasou` para o filtro de atraso, e
+  `dias_atraso` fica ausente nos pedidos não entregues.
+- **BM25** (`bm25.pkl`): busca por palavras sobre o mesmo texto, com minúsculas e sem acentos. As
+  stopwords removidas não incluem "não", "nem" e "nunca", porque "recebi" e "não recebi" são
+  reclamações opostas.
+
+Cada review já é curta (mediana de ~50 caracteres), então cada uma vira um único chunk. O índice é
+reconstruído do zero a cada execução, para nunca misturar amostra e base completa. Com GPU, a base
+inteira é indexada em cerca de 1 minuto.
+
+#### Escolha do modelo de embedding (T07)
+
+`python -m eval.comparar_embeddings` compara modelos multilíngues só na busca vetorial (sem BM25,
+filtros nem reranker), indexando as 34.912 reviews em memória com cada um.
+
+- **Avaliação automática:** 55 consultas (10 perguntas da equipe e 45 escritas para a T07, 5 por
+  tema, em `eval/consultas_t07.csv`). Uma review do top-10 é relevante se cita algum dos temas
+  esperados para a consulta (rótulos da T08).
+- **Avaliação manual:** 10 consultas sobre assuntos que não têm tema próprio (nota fiscal, produto
+  falsificado, voltagem, tamanho, montagem, golpe, pagamento, embalagem, cheiro/vencido,
+  marketplace). O top-5 de cada modelo foi juntado numa planilha embaralhada e rotulado sem saber de
+  qual modelo veio cada review.
+- **Incerteza:** intervalo de confiança de 95% por bootstrap pareado sobre as consultas. Se o intervalo
+  inclui zero, a diferença não é conclusiva.
+
+| Modelo | Dim. | Indexar a base (GPU) | Índice | P@10 automática | MRR@10 | P@5 manual |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `intfloat/multilingual-e5-small` | 384 | 7 s | 54 MB | 0,625 | 0,838 | 0,52 |
+| `intfloat/multilingual-e5-base` (índice atual) | 768 | 8 s | 107 MB | 0,709 | 0,881 | 0,52 |
+| `BAAI/bge-m3` | 1024 | 16 s | 143 MB | **0,851** | **0,940** | **0,68** |
+
+Diferença de P@10 em relação ao `e5-base`: `bge-m3` **+0,142** [+0,078; +0,209] e `e5-small`
+−0,084 [−0,147; −0,020]. As duas são conclusivas. Na rotulagem manual, a vantagem do `bge-m3`
+(+0,16 [−0,06; +0,38]) vai na mesma direção, mas com 10 consultas não é conclusiva sozinha.
+Resultados completos em `eval/t07_resumo.md` e `eval/t07_resultados.csv`.
+
+**O que os números mostram.**
+- O `bge-m3` entende melhor o sentido da frase, e não só as palavras. Exemplos: "O pedido chegou
+  depois da data prevista" (`e5-base` 0/10 relevantes, `bge-m3` 6/10), "Preço justo pelo que entrega"
+  (2/10 contra 10/10) e "A roupa não serviu por causa do tamanho" (1/5 contra 5/5).
+- As similaridades do `e5-base` ficam concentradas entre 0,85 e 0,95, e as do `bge-m3` vão de 0,69 a
+  1,0. Notas mais espalhadas separam melhor o que é relevante do que não é.
+- O `bge-m3` não ganha em tudo: perdeu em "problemas no pagamento" (P15) e "embalagem danificada"
+  (P21).
+- O `e5-small` corta o índice pela metade, mas perde qualidade de forma significativa.
+
+**Limitações.** Os rótulos automáticos vêm das regras da T08 (~80% de acerto), então os valores
+absolutos são aproximados. A comparação entre modelos é justa porque todos são julgados pelos mesmos
+rótulos. A rotulagem manual foi feita por uma única pessoa.
+
+**Recomendação:** trocar o índice para o `BAAI/bge-m3` (`EMBEDDING_MODEL=BAAI/bge-m3`; o `index.py`
+já omite os prefixos `query:`/`passage:` quando o modelo não é E5). Custos da troca: o modelo tem
+2,3 GB, a indexação sem GPU fica bem mais lenta, e a calibração do limiar (T15) deve ser conferida,
+porque os candidatos que chegam ao reranker mudam. _Decisão da equipe: pendente._
 
 ## Pipeline RAG
 
