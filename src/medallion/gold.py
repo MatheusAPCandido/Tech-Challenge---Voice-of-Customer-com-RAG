@@ -127,9 +127,10 @@ def executar() -> pd.DataFrame:
     d["categoria_en"] = d["categoria_en"].fillna("sem_categoria")
     d["estado"] = d["customer_state"]
     d["review_score"] = d["review_score"].astype("int64")
-    lista_temas = d["texto"].map(temas_da_review)
-    d["tema"] = lista_temas.map(tema_principal)
-    d["temas"] = lista_temas.map("|".join)
+    # listas Python puras: no pandas 3 uma coluna de listas volta como arrays do numpy
+    lista_temas = [temas_da_review(t) for t in d["texto"]]
+    d["tema"] = [tema_principal(t) for t in lista_temas]
+    d["temas"] = ["|".join(t) for t in lista_temas]
     d["sentimento"] = pd.cut(d["review_score"], bins=[0, 2, 3, 5],
                              labels=["negativo", "neutro", "positivo"]).astype("string")
     d["tamanho_texto"] = d["texto"].str.len().astype("int64")

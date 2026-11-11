@@ -137,4 +137,4 @@ def temas_da_review(texto: str) -> list[str]:
 
 def tema_principal(temas: list[str]) -> str:
     """Primeiro tema da lista (já ordenada por PRIORIDADE) ou "outros"."""
-    return temas[0] if temas else "outros"
+    return str(temas[0]) if len(temas) else "outros"
