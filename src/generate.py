@@ -1,6 +1,6 @@
-"""Construção do contexto, geração e validação de citações (Pessoa C).
+"""Construção do contexto, geração e validação de citações.
 
-Tarefas: T19 (prompt + contexto), T21 (geração), T22 (validação), T23/T24 (agregadas).
+Tarefas: T19 (prompt + contexto), T21 (geração) e T22 (validação). T24 (agregadas) fica em src/agregar.py.
 """
 
 from __future__ import annotations

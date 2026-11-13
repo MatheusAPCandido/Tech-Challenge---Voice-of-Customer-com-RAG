@@ -6,13 +6,12 @@ bloco de contagens por tema, calculado em código sobre todas as avaliações co
 RAG, com as citações [R#]. O LLM não vê nem escreve esses números.
 
 Critério de contagem: o tema principal de cada avaliação (cada uma conta uma vez).
+Recorte: os mesmos filtros da busca (os da T11 e os escolhidos na interface).
 """
 
 from __future__ import annotations
 
 import logging
-import re
-import unicodedata
 from functools import lru_cache
 
 import pandas as pd
@@ -37,28 +36,6 @@ MARCADOR_EXEMPLOS = "**Exemplos entre as avaliações recuperadas:**"
 def _carregar() -> pd.DataFrame:
     """Lê a gold uma vez por processo; as perguntas seguintes reaproveitam a tabela."""
     return pd.read_parquet(GOLD_COMPLETO, columns=COLUNAS)
-
-
-def _normalizar(texto: str) -> str:
-    sem_acento = unicodedata.normalize("NFKD", texto or "").encode("ascii", "ignore").decode("ascii")
-    return sem_acento.lower()
-
-
-def ajustar_recorte(pergunta: str, filtros: dict) -> dict:
-    """Pergunta agregada sobre problemas, sem filtro de nota → notas 1 e 2.
-
-    O pipeline usa o resultado na busca e na contagem, para as duas partes da resposta
-    falarem do mesmo recorte. Com sinais dos dois lados ("positivos ou negativos"),
-    não filtra, como faz a T11.
-    """
-    if "review_score_min" in filtros or "review_score_max" in filtros:
-        return filtros  # a nota já foi escolhida (pela T11 ou na interface)
-    texto = _normalizar(pergunta)
-    negativo = re.search(r"problema|reclam|insatisf|negativ", texto)
-    positivo = re.search(r"elogi|\bsatisf|positiv", texto)
-    if negativo and not positivo:
-        return {**filtros, "review_score_max": 2}
-    return filtros
 
 
 def _filtrar(df: pd.DataFrame, filtros: dict) -> pd.DataFrame:

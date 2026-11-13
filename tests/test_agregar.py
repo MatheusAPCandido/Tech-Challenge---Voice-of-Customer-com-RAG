@@ -82,17 +82,6 @@ def test_descrever_recorte(filtros, esperado):
     assert ag.descrever_recorte(filtros) == esperado
 
 
-@pytest.mark.parametrize("pergunta, filtros, esperado", [
-    ("Quais são os principais problemas relatados pelos clientes?", {}, {"review_score_max": 2}),  # P03
-    ("Quais aspectos os clientes mais comentam (positivos ou negativos)?", {}, {}),  # P13: dois lados
-    ("Quais padrões aparecem entre clientes insatisfeitos?", {}, {"review_score_max": 2}),
-    ("Quais são os principais problemas?", {"review_score_min": 4}, {"review_score_min": 4}),  # nota já escolhida
-    ("Quais aspectos são mais elogiados?", {}, {}),
-], ids=["P03-problemas", "P13-dois-lados", "insatisfeitos", "nota-ja-escolhida", "elogios"])
-def test_ajustar_recorte(pergunta, filtros, esperado):
-    assert ag.ajustar_recorte(pergunta, filtros) == esperado
-
-
 @pytest.mark.integration
 @pytest.mark.skipif(not ag.GOLD_COMPLETO.exists(), reason="gold ausente: rode python -m src.prepare")
 def test_contagem_bate_com_resumo_temas_da_t08():
