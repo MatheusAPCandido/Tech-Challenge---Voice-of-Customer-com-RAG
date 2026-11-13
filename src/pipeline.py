@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from src.agregar import bloco_contagens
 from src.generate import responder
 from src.guardrails import avaliar_evidencias, filtrar_relevantes
 from src.retrieve import buscar, processar_pergunta
@@ -26,6 +27,10 @@ def perguntar(pergunta: str, filtros_manuais: dict | None = None) -> Resposta:
     if veredito.motivo == "evidencia_insuficiente":
         resposta.texto = f"{veredito.mensagem}\n\n{resposta.texto}"
         resposta.confianca = "baixa"
+    if consulta.tipo == "agregada" and not resposta.recusada:  # T24: contagens antes dos exemplos
+        bloco = bloco_contagens(filtros)
+        if bloco:
+            resposta.texto = f"{bloco}\n\n{resposta.texto}"        
     return resposta
 
 
