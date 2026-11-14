@@ -66,6 +66,7 @@ Consulta (a cada pergunta)
     ├── retrieve.py          # transformação da pergunta e busca híbrida
     ├── guardrails.py        # escopo, limiar e evidência insuficiente
     ├── generate.py          # contexto, prompt, LLM e validação de citações
+    ├── agregar.py           # contagens por tema para perguntas agregadas
     └── pipeline.py          # orquestra pergunta → resposta
 ```
 
@@ -396,6 +397,42 @@ USE_MOCK=false GEN_MOCK=true JUDGE_ENABLED=true HF_HUB_OFFLINE=1 \
 
 ## Etapas Intermediárias Finalizadas
 
+### T02 — Contrato entre os módulos
+
+`src/schema.py` define o formato dos dados trocados entre as partes do pipeline. Cada módulo foi
+criado com a assinatura combinada, e os campos não mudam sem acordo da equipe, porque os outros
+módulos dependem deles.
+
+| Função | Entrada | Saída |
+| --- | --- | --- |
+| `prepare.preparar_base()` | CSVs em `data/` | `data/reviews_docs.parquet` |
+| `index.construir_indice()` | parquet | índice em `chroma_db/` |
+| `retrieve.buscar()` | pergunta, filtros | `list[Evidencia]` |
+| `guardrails.avaliar_evidencias()` | `list[Evidencia]` | `Veredito` |
+| `generate.responder()` | pergunta, evidências | `Resposta` |
+| `pipeline.perguntar()` | pergunta | `Resposta` |
+
+- **`COLUNAS_DOCUMENTO`:** as colunas de `data/reviews_docs.parquet` (`review_id`, `texto`,
+  `review_score`, `data_compra`, `dias_atraso`, `entregue`, `categoria`, `estado`, `tema`).
+- **`FILTROS_SUPORTADOS`:** os filtros aceitos por `buscar()` (`review_score_min`,
+  `review_score_max`, `categoria`, `estado`, `atrasou`, `periodo_inicio`, `periodo_fim`, `tema`).
+- **`Evidencia`:** uma avaliação recuperada, com `review_id`, `texto`, `score` e metadados. Os campos
+  de diagnóstico da calibração do limiar (T15) são opcionais e não alteram o contrato original.
+- **`ConsultaProcessada`:** a pergunta transformada, com a consulta, os filtros e o tipo (`pontual`,
+  `agregada` ou `fora_de_escopo`).
+- **`Veredito`:** a decisão dos guardrails: se pode responder, o motivo (`ok`, `fora_de_escopo`,
+  `sem_evidencia` ou `evidencia_insuficiente`) e a mensagem.
+- **`Resposta`:** a saída final consumida pela interface: texto, `review_id` citados, evidências,
+  confiança (`alta`, `media` ou `baixa`) e, na recusa, o motivo.
+
+**Verificar:**
+
+```bash
+python -m pytest tests/test_schema_contrato.py -q
+# esperado: 5 passed — colunas do documento, filtros suportados, valores padrão de
+# ConsultaProcessada e Veredito, e campos de diagnóstico de Evidencia vazios por padrão
+```
+
 ### T11 — Transformação da pergunta (Pessoa B)
 
 `processar_pergunta()` em `src/retrieve.py` classifica a pergunta (`pontual` / `agregada` / `fora_de_escopo`),
@@ -518,14 +555,6 @@ USE_MOCK=false GEN_MOCK=true JUDGE_ENABLED=true HF_HUB_OFFLINE=1 \
 limiar/CE pode passar reviews genéricas de entrega (`xfail` documenta o débito). Com
 `JUDGE_ENABLED=true` + Ollama, o smoke `p09_com_judge` espera `sem_evidencia`. Não marcar
 drone como `_OFFTOPIC`.
-
-## Principais decisões técnicas
-
-_TODO: resumo das decisões e justificativas, com números da avaliação._
-
-## Limitações e próximos passos
-
-_TODO_
 
 ### T19 — Prompt com citações e montagem do contexto
 
@@ -762,3 +791,13 @@ print(perguntar('Quais padrões aparecem nas avaliações de clientes insatisfei
 # esperado: "Na base inteira, entre 10.836 avaliações com texto
 # (notas 1 e 2 · todos os períodos)..."
 ```
+
+
+## Principais decisões técnicas
+
+_TODO: resumo das decisões e justificativas, com números da avaliação._
+
+## Limitações e próximos passos
+
+_TODO_
+
