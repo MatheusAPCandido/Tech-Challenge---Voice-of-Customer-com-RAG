@@ -14,6 +14,7 @@ artifacts/
 eval/*.xlsx
 eval/resultados.csv
 eval/metricas_precisao.csv
+eval/metricas_fidelidade.csv
 context/
 
 # Segredos

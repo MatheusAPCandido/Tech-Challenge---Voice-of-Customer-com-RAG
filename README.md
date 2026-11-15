@@ -556,6 +556,40 @@ limiar/CE pode passar reviews genéricas de entrega (`xfail` documenta o débito
 `JUDGE_ENABLED=true` + Ollama, o smoke `p09_com_judge` espera `sem_evidencia`. Não marcar
 drone como `_OFFTOPIC`.
 
+### T17b — Fidelidade manual (Pessoa B)
+
+Avaliação humana de **groundedness** (claims × contexto recuperado), com geração real via
+Ollama — sem Gemini e sem RAGAS. A métrica por pergunta é `n_suportadas / n_afirmacoes`; o
+script reporta **macro** (média por pergunta) e **micro** (`sum` das contagens).
+
+**Critério (groundedness ≠ citação):**
+
+- Afirmação: claim factual em `resposta_avaliada` (1 período / 1 bullet ≈ 1 afirmação).
+- Suportada: fato sustentado pelas `evidencias` recuperadas, **com ou sem** `[R#]`.
+- Não suportada: inventada, contradita ou parcial (conservador: parcial = não suportada).
+- Falta de `[R#]` sozinha não zera a claim — anote em `observacoes`.
+- Fora da métrica: bloco de contagens antes de `MARCADOR_EXEMPLOS`; recusas; `esperado=recusar`.
+
+**Verificar** (índice pronto; `ollama serve` + `ollama pull qwen2.5`):
+
+```bash
+# 1) gerar planilha para rotular (busca real + Ollama; um só modelo)
+#    Layout T15: aba indice + uma aba por P0x (evidências em linhas)
+USE_MOCK=false GEN_MOCK=false GEN_PROVIDER=ollama GEN_MODEL=qwen2.5 \
+  GEN_FALLBACK_MODEL= JUDGE_ENABLED=false HF_HUB_OFFLINE=1 \
+  python -m eval.gerar_fidelidade
+
+# 2) copiar eval/fidelidade_para_rotular.xlsx → eval/fidelidade_rotulos.xlsx
+#    e preencher n_afirmacoes / n_suportadas / observacoes (B6–B8) em cada aba P0x
+
+# 3) calcular macro e micro
+python -m eval.calcular_fidelidade
+# ou: python -m eval.calcular_fidelidade --xlsx eval/fidelidade_rotulos.xlsx
+
+# unitário do cálculo (sem índice/Ollama)
+python -m pytest tests/test_calcular_fidelidade.py -q
+```
+
 ### T19 — Prompt com citações e montagem do contexto
 
 `montar_contexto()` em `src/generate.py` numera as evidências como `[R1]`, `[R2]`… e devolve o
