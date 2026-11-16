@@ -57,6 +57,8 @@ Consulta (a cada pergunta)
 │   ├── precisao_k.py           # T17a: precisão@k (rótulos T15)
 │   ├── gerar_fidelidade.py     # T17b: planilha XLSX para rotular fidelidade
 │   ├── calcular_fidelidade.py  # T17b: macro/micro a partir dos rótulos
+│   ├── comparar_embeddings.py  # T07: compara modelos de embedding
+│   ├── avaliacao_final.py      # T28: avaliação final e comparação de variações
 │   └── rotulos_io.py           # leitura compartilhada da planilha de rótulos T15
 ├── notebooks/01_eda.ipynb   # análise exploratória
 └── src/
@@ -80,7 +82,7 @@ _TODO: confirmar escolhas e versões._
 | --- | --- |
 | Linguagem | Python 3.11+ |
 | Manipulação de dados | pandas |
-| Embeddings | _TODO_ (ex.: `intfloat/multilingual-e5-base`) |
+| Embeddings | `intfloat/multilingual-e5-base` (escolha na T07, ver [Embeddings e indexação](#embeddings-e-indexação)) |
 | Banco vetorial | ChromaDB |
 | Busca lexical | rank-bm25 |
 | Reranker | `BAAI/bge-reranker-v2-m3` (cross-encoder) |
@@ -259,7 +261,11 @@ rótulos. A rotulagem manual foi feita por uma única pessoa.
 **Recomendação:** trocar o índice para o `BAAI/bge-m3` (`EMBEDDING_MODEL=BAAI/bge-m3`; o `index.py`
 já omite os prefixos `query:`/`passage:` quando o modelo não é E5). Custos da troca: o modelo tem
 2,3 GB, a indexação sem GPU fica bem mais lenta, e a calibração do limiar (T15) deve ser conferida,
-porque os candidatos que chegam ao reranker mudam. _Decisão da equipe: pendente._
+porque os candidatos que chegam ao reranker mudam.
+
+**Decisão da equipe:** manter o `e5-base` nesta entrega. Toda a calibração e a avaliação (T15 a T28)
+foram feitas com ele, e trocar o modelo exigiria reindexar a base e refazer essas medições. A troca
+para o `bge-m3` fica como próximo passo.
 
 ## Pipeline RAG
 
@@ -312,6 +318,11 @@ abaixo referem-se ao setup Qwen — não ao Gemini.
 | Recusa correta | busca real, `GEN_MOCK=true` | ~79% (n=29) |
 | Macro precisão@5 / @10 | rótulos T15 | ~0,90 / ~0,85 (n=18) |
 | Fidelidade macro / micro | Ollama `qwen2.5` | 1,0 / 1,0 (n=15 elegíveis) |
+| Recusa correta (T28) | busca real, T11 por regras, `GEN_MOCK=true` | ~97% (n=29) |
+| Precisão@5 / @10 (T28) | top-10 do pipeline atual, todas as evidências rotuladas | 0,72 / 0,71 (n=21) |
+
+As linhas da T17a e da T28 não medem exatamente a mesma coisa; a diferença é explicada em
+[Avaliação final e comparação de variações (T28)](#avaliação-final-e-comparação-de-variações-t28).
 
 ### Recusa correta (T17a)
 
@@ -362,6 +373,91 @@ afirmações de forma diferente e chegar a contagens distintas. Perguntas recusa
 são omitidas da média. Por fim, fidelidade não é o mesmo que precisão de citação: a ausência de
 `[R#]` sozinha não invalida uma afirmação se o fato estiver nas evidências recuperadas.
 
+### Avaliação final e comparação de variações (T28)
+
+`python -m eval.avaliacao_final` mede a busca e a recusa do pipeline atual e compara variações da
+recuperação **sobre os mesmos candidatos**: cada pergunta é buscada uma vez, e o ranking de cada
+variação é reconstruído a partir do mesmo pool de 40 candidatos.
+
+- **Variações:** só vetorial, só BM25, híbrida (RRF) sem reranker, híbrida + reranker (o pipeline
+atual, usado como referência), `final` (só as evidências com score ≥ limiar, ou seja, o que chega
+ao LLM) e `sem filtros` (a mesma busca sem os filtros da T13, nas perguntas em que a T11 extraiu
+filtros).
+- **Métricas de busca:** P@5, P@10 e MRR@10 nas 21 perguntas que devem ser respondidas. Review sem
+rótulo conta como não relevante.
+- **Rótulos:** cada review recuperada por alguma variação foi rotulada como relevante ou não, numa
+planilha embaralhada que não mostra de qual variação ela veio (`eval/t28_rotulagem.xlsx`, não
+versionada). Os rótulos consolidados ficam em `eval/t28_rotulos.csv` (versionado). Uma review só é
+relevante se serve de evidência para a pergunta, incluindo restrições de estado e período.
+- **Recusa:** a política sem guardrail (só a T11) e vários limiares, usando a própria
+`avaliar_evidencias()` da T16.
+- **Incerteza:** intervalo de confiança de 95% por bootstrap pareado sobre as perguntas. Se o
+intervalo inclui zero, a diferença não é conclusiva.
+- **Configuração da execução:** `intfloat/multilingual-e5-base`, `BAAI/bge-reranker-v2-m3`, T11 por
+regras, pool de 40, top-10, `LIMIAR_RELEVANCIA=0.5`, `JUDGE_ENABLED=false`, sem LLM de geração.
+
+```bash
+python -m eval.avaliacao_final                      # busca, métricas e planilha do que falta rotular
+python -m eval.avaliacao_final --importar-rotulos   # depois de preencher eval/t28_rotulagem.xlsx
+python -m eval.avaliacao_final --refazer-busca      # ignora o cache da busca (data/t28/)
+python -m eval.avaliacao_final --com-geracao        # opcional: gera as respostas (Gemini ou Ollama)
+```
+
+Resultados completos em `eval/t28_resumo.md`, `eval/t28_por_pergunta.csv` e `eval/t28_recusa.csv`.
+
+**Busca (21 perguntas que devem ser respondidas)**
+
+| Variação | P@5 | P@10 | MRR@10 | Diferença de P@10 vs atual (IC 95%) |
+| --- | ---: | ---: | ---: | --- |
+| Só vetorial | 0,63 | 0,62 | 0,84 | −0,09 [−0,20; +0,01] |
+| Só BM25 | 0,52 | 0,46 | 0,72 | −0,25 [−0,37; −0,12] |
+| Híbrida (RRF) sem reranker | 0,68 | 0,61 | 0,83 | −0,10 [−0,16; −0,04] |
+| **Híbrida + reranker (atual)** | **0,72** | **0,71** | 0,80 | referência |
+| `final` (score ≥ 0,5) | 0,72 | 0,71 | 0,80 | 0 (idêntica) |
+| Sem filtros (9 perguntas com filtro) | 0,58 | 0,54 | 0,68 | −0,12 [−0,27; 0,00] (atual nessas 9: 0,67) |
+
+**Recusa (29 perguntas: 21 para responder, 8 para recusar)**
+
+| Política | Recusa correta | Erros |
+| --- | ---: | --- |
+| Sem guardrail e limiares de 0,0 a 0,5 | 97% | 1 (P09, entrega por drone) |
+| Limiar 0,6 | 59% | 12 perguntas que deveriam ser respondidas passam a ser recusadas |
+| Limiar 0,7 | 41% | 17 |
+| Limiar 0,8 | 28% | 21 (todas as que deveriam ser respondidas) |
+
+**O que os números mostram.**
+
+- **O reranker vale a pena.** A híbrida com reranker supera a híbrida sem reranker (+0,10 de P@10,
+conclusivo) e a busca só por palavras (+0,25). Em 6 das 21 perguntas, as 10 evidências são
+relevantes.
+- **Contra a busca só vetorial, a vantagem não é conclusiva** (+0,09, com intervalo que cruza o
+zero). A vetorial ainda acerta o primeiro resultado um pouco mais vezes (MRR 0,84 contra 0,80).
+- **Os filtros da T13 ajudam**, com diferença no limite da significância (+0,12 nas 9 perguntas com
+filtro).
+- **O limiar de 0,5 não corta nenhuma evidência do top-10.** A variação `final` é idêntica à atual, e
+as recusas corretas vêm da T11 (fora de escopo), não do limiar. Subir o limiar para 0,6 já faz o
+sistema recusar 12 perguntas válidas, porque o cross-encoder dá notas altas a quase tudo que chega
+ao top-10, inclusive na P09.
+- **Perguntas mais fracas:** P15 (pagamento, P@10 0,2) e P24 (odor ou produto vencido, 0,4) tratam
+de assuntos raros na base. P28, P29 e P30 (0,5, 0,6 e 0,2) pedem um período, e a T11 não extrai
+filtro de data dessas perguntas.
+- **Custo:** a busca completa (vetorial + BM25 + reranker de 40 candidatos) leva cerca de 0,7 s por
+pergunta com GPU.
+
+**Diferença em relação à T17a.**
+
+- **Recusa (79% na T17a, 97% na T28):** a T28 rodou com a T11 por regras e mede a recusa com a mesma
+função dos guardrails usada pelo `pipeline.perguntar()`. A medição da T17a usou a configuração do
+`.env` da época. Para conferir, rode `python -m eval.run_eval` nas duas configurações de
+`LLM_PROVIDER`.
+- **Precisão (0,85 na T17a, 0,71 na T28):** a T17a conta só as evidências que estavam na planilha da
+T15 (18 perguntas com rótulos suficientes). A T28 rotula todo o top-10 atual das 21 perguntas,
+incluindo as mais difíceis (P15, P24 e as de período).
+
+**Limitações.** Os rótulos da T28 foram feitos às cegas por um assistente de IA, com o critério
+descrito acima, e não pela pessoa que rotulou a T15. Com 21 perguntas, diferenças pequenas não são
+conclusivas.
+
 ## Exemplos de perguntas e respostas
 
 _TODO (Pessoa C): incluir pelo menos uma pergunta pontual, uma agregada, uma com filtro e uma recusa._
@@ -408,7 +504,7 @@ streamlit run app/streamlit_app.py
 
 Com `USE_MOCK=true` no `.env`, a interface roda com dados falsos, sem precisar da base pronta.
 
-### 6. Rodar a avaliação (T17a e T17b)
+### 6. Rodar a avaliação (T17a, T17b e T28)
 
 ```bash
 # T17a — recusa correta + precisão@k (sem LLM de geração)
@@ -421,6 +517,9 @@ USE_MOCK=false GEN_MOCK=false GEN_PROVIDER=ollama GEN_MODEL=qwen2.5 \
   python -m eval.gerar_fidelidade
 # copiar eval/fidelidade_para_rotular.xlsx → eval/fidelidade_rotulos.xlsx e rotular B6–B8
 python -m eval.calcular_fidelidade
+
+# T28 — avaliação final e comparação de variações (sem LLM de geração)
+python -m eval.avaliacao_final
 ```
 
 Detalhes e tabela de resultados na seção [Avaliação](#avaliação).
@@ -698,6 +797,9 @@ print(perguntar('Quais padrões aparecem nas avaliações de clientes insatisfei
 - A precisão@k foi medida só com rótulos da planilha T15, sem LLM de geração. A macro precisão@5 ficou em cerca de 0,90 e a @10 em cerca de 0,85 (18 perguntas com rótulos suficientes).
 - A fidelidade (groundedness) foi avaliada manualmente, sem RAGAS, com respostas geradas por Qwen2.5 via Ollama (`GEN_PROVIDER=ollama`, fallback vazio). Macro e micro ficaram em 1,0 em 15 perguntas elegíveis. Essa medição não se confunde com o Gemini usado na interface.
 
+- O modelo de embedding é o `intfloat/multilingual-e5-base`. Na T07, o `BAAI/bge-m3` foi melhor na busca vetorial, mas a equipe manteve o `e5-base` porque toda a calibração e a avaliação foram feitas com ele.
+- Na avaliação final (T28), o reranker aumentou a precisão@10 de 0,61 (híbrida sem reranker) para 0,71, com diferença conclusiva; contra a busca só vetorial, o ganho (+0,09) não foi conclusivo com 21 perguntas.
+
 ## Limitações e próximos passos
 
 **Limitações (recuperação e avaliação).**
@@ -706,6 +808,9 @@ print(perguntar('Quais padrões aparecem nas avaliações de clientes insatisfei
 - As métricas de precisão@k e de fidelidade usam rotulagem humana, alinhada à prática de avaliação de RAG; isso introduz variação entre anotadores e exige conjuntos com rótulos suficientes por pergunta.
 - A fidelidade reportada foi medida com geração Qwen2.5 via Ollama, em protocolo controlado e com um único modelo, o que torna o resultado interpretável para esse setup de avaliação.
 - O gate `JUDGE_ENABLED` permanece desligado por padrão para priorizar estabilidade e reprodutibilidade nas medições; quando ativado, acrescenta uma checagem semântica adicional via Ollama.
+
+- Na avaliação final (T28), o limiar de 0,5 não cortou nenhuma evidência do top-10, e as recusas corretas vieram da classificação de escopo (T11). O limiar não barra perguntas no escopo mas sem resposta, como a P09 (entrega por drone).
+- A transformação da pergunta não extrai filtro de período ("junho a agosto de 2018", "início de 2018"), o que derruba a precisão dessas perguntas (P28 a P30).
 
 **Próximos passos (recuperação e avaliação).**
 - Ampliar e refinar o conjunto de rótulos humanos (T15) e, após mudanças relevantes no índice, recalibrar o limiar de relevância.
