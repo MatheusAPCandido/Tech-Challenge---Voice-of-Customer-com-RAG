@@ -51,6 +51,8 @@ Consulta (a cada pergunta)
 ├── data/                    # CSVs do Kaggle (não versionados)
 ├── eval/
 │   ├── perguntas.csv           # conjunto de perguntas de teste
+│   ├── gerar_rotulos_t15.py    # T15: planilha para calibrar o limiar
+│   ├── calibrar_limiar.py      # T15: sugere LIMIAR_RELEVANCIA
 │   ├── run_eval.py             # T17a: taxa de recusa correta
 │   ├── precisao_k.py           # T17a: precisão@k (rótulos T15)
 │   ├── gerar_fidelidade.py     # T17b: planilha XLSX para rotular fidelidade
@@ -264,23 +266,11 @@ porque os candidatos que chegam ao reranker mudam. _Decisão da equipe: pendente
 O contrato entre os módulos (documentos, filtros, `Evidencia`, `ConsultaProcessada`, `Veredito`,
 `Resposta`) está em `src/schema.py`. Em cada pergunta, o fluxo de recuperação é:
 
-1. **Transformação (T11).** `processar_pergunta()` em `src/retrieve.py` classifica o tipo
-
-   (`pontual` / `agregada` / `fora_de_escopo`), extrai filtros e monta a consulta textual. Com
-     `LLM_PROVIDER=ollama` tenta JSON via Ollama (modelo `LLM_MODEL`, tipicamente Qwen2.5); se o
-     daemon falhar, cai nas regras locais.
-2. **Busca híbrida (T12).** `buscar()` combina Chroma (vetorial) + BM25 e funde com RRF
-
-   (`RRF_K=60`), formando um pool de candidatos.
-3. **Filtros (T13).** `FILTROS_SUPORTADOS` (nota, categoria, estado, atraso, período, tema) entram
-
-   no `where` do Chroma e no mesmo recorte do BM25 antes do RRF.
-4. **Reranker (T14).** O cross-encoder `BAAI/bge-reranker-v2-m3` reordena o pool
-
-   (`TOP_K_CANDIDATOS`) e corta em `TOP_K_FINAL`; o score final é `sigmoid(logit)` ≈`(0, 1]`.
-5. **Limiar (T15).** Só evidências com `score >= LIMIAR_RELEVANCIA` (default `0.5`, calibrado com
-
-   rótulos humanos) seguem; detalhes na seção [Tratamento de perguntas sem evidência](#tratamento-de-perguntas-sem-evidência).
+1. **Transformação (T11).** `processar_pergunta()` em `src/retrieve.py` classifica o tipo (`pontual` / `agregada` / `fora_de_escopo`), extrai filtros e monta a consulta textual. Com `LLM_PROVIDER=ollama` tenta JSON via Ollama (modelo `LLM_MODEL`, tipicamente Qwen2.5); se o daemon falhar, cai nas regras locais.
+2. **Busca híbrida (T12).** `buscar()` combina Chroma (vetorial) + BM25 e funde com RRF (`RRF_K=60`), formando um pool de candidatos.
+3. **Filtros (T13).** `FILTROS_SUPORTADOS` (nota, categoria, estado, atraso, período, tema) entram no `where` do Chroma e no mesmo recorte do BM25 antes do RRF.
+4. **Reranker (T14).** O cross-encoder `BAAI/bge-reranker-v2-m3` reordena o pool (`TOP_K_CANDIDATOS`) e corta em `TOP_K_FINAL`; o score final é `sigmoid(logit)` ≈`(0, 1]`.
+5. **Limiar (T15).** Só evidências com `score >= LIMIAR_RELEVANCIA` (default `0.5`, calibrado com rótulos humanos) seguem; detalhes na seção [Tratamento de perguntas sem evidência](#tratamento-de-perguntas-sem-evidência).
 
 Construção do contexto com `[R#]`, chamada ao LLM e validação de citações ficam no parágrafo de
 geração abaixo (e nos detalhes de geração e interface mais adiante).
@@ -319,7 +309,7 @@ abaixo referem-se ao setup Qwen — não ao Gemini.
 
 | Métrica | Setup | Valor |
 | --- | --- | --- |
-| Recusa correta | busca real, `GEN_MOCK=true` | ~79% (n=29; falhas P11, P14, P21, P24–P26) |
+| Recusa correta | busca real, `GEN_MOCK=true` | ~79% (n=29) |
 | Macro precisão@5 / @10 | rótulos T15 | ~0,90 / ~0,85 (n=18) |
 | Fidelidade macro / micro | Ollama `qwen2.5` | 1,0 / 1,0 (n=15 elegíveis) |
 
@@ -352,7 +342,7 @@ suficientes (ex. P09 / P28–P30 incompletos) são omitidas da média.
 
 ### Fidelidade (T17b)
 
-Avaliação humana de **groundedness** (claims × contexto recuperado). Geração real
+Avaliação humana de **groundedness** (claims × contexto recuperado), **sem RAGAS**. Geração real
 com Qwen (`GEN_PROVIDER=ollama`, `GEN_MODEL=qwen2.5`, fallback vazio). Por pergunta:
 `fidelidade = n_suportadas / n_afirmacoes`; o script reporta **macro** (média por pergunta) e
 **micro** (`sum` das contagens). Quando a resposta tem bloco agregado, o texto avaliado é só o
