@@ -401,7 +401,7 @@ def escrever_resumo(rotulo: str, busca: pd.DataFrame, recusa: pd.DataFrame, perg
         f"# T28 — Avaliação final ({rotulo})",
         "",
         f"Configuração: embedding `{EMBEDDING_MODEL}`, reranker `{RERANKER_MODEL}`, "
-        f"T11 `{LLM_PROVIDER}`, pool {TOP_K_CANDIDATOS}, top-{K}, limiar {LIMIAR_RELEVANCIA}.",
+        f"T11 `{'ollama' if LLM_PROVIDER.strip().lower() == 'ollama' else 'regras'}`, pool {TOP_K_CANDIDATOS}, top-{K}, limiar {LIMIAR_RELEVANCIA}.",
         f"Perguntas: {len(perguntas)} ({(perguntas['esperado'] == 'responder').sum()} para responder, "
         f"{(perguntas['esperado'] == 'recusar').sum()} para recusar).",
         "",

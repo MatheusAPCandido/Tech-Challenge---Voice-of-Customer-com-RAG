@@ -52,11 +52,11 @@ P13,agregada,False,bm25,0.4,0.4,0.5,10,0
 P13,agregada,False,hibrida,0.8,0.8,1.0,10,0
 P13,agregada,False,hibrida+reranker,0.8,0.8,1.0,10,0
 P13,agregada,False,final,0.8,0.8,1.0,10,0
-P14,especifico,False,vetorial,0.6,0.6,1.0,10,1
+P14,especifico,False,vetorial,0.6,0.7,1.0,10,0
 P14,especifico,False,bm25,0.8,0.8,1.0,10,0
 P14,especifico,False,hibrida,0.8,0.7,1.0,10,0
-P14,especifico,False,hibrida+reranker,0.8,0.8,1.0,10,1
-P14,especifico,False,final,0.8,0.8,1.0,10,1
+P14,especifico,False,hibrida+reranker,1.0,0.9,1.0,10,0
+P14,especifico,False,final,1.0,0.9,1.0,10,0
 P15,especifico,False,vetorial,0.2,0.1,0.5,10,0
 P15,especifico,False,bm25,0.2,0.1,0.5,10,0
 P15,especifico,False,hibrida,0.4,0.2,0.25,10,0

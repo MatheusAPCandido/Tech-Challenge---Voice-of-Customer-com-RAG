@@ -1,22 +1,20 @@
 # T28 — Avaliação final (atual)
 
-Configuração: embedding `intfloat/multilingual-e5-base`, reranker `BAAI/bge-reranker-v2-m3`, T11 `openai`, pool 40, top-10, limiar 0.5.
+Configuração: embedding `intfloat/multilingual-e5-base`, reranker `BAAI/bge-reranker-v2-m3`, T11 `regras`, pool 40, top-10, limiar 0.5.
 Perguntas: 29 (21 para responder, 8 para recusar).
 
 ## Busca (perguntas que devem ser respondidas)
 
 | Variação | Perguntas | P@5 | P@10 | MRR@10 | Evidências | Sem rótulo | Diferença P@10 vs atual (IC95%) |
 |---|---:|---:|---:|---:|---:|---:|---|
-| vetorial | 21 | 0.629 | 0.614 | 0.837 | 10.0 | 1 | -0.086 [-0.195; +0.005] |
-| bm25 | 21 | 0.524 | 0.457 | 0.716 | 10.0 | 0 | -0.243 [-0.367; -0.119] |
-| hibrida | 21 | 0.676 | 0.605 | 0.829 | 10.0 | 0 | -0.095 [-0.152; -0.038] |
-| hibrida+reranker | 21 | 0.714 | 0.700 | 0.795 | 10.0 | 1 | referência |
-| final | 21 | 0.714 | 0.700 | 0.795 | 10.0 | 1 | +0.000 [+0.000; +0.000] |
+| vetorial | 21 | 0.629 | 0.619 | 0.837 | 10.0 | 0 | -0.086 [-0.195; +0.005] |
+| bm25 | 21 | 0.524 | 0.457 | 0.716 | 10.0 | 0 | -0.248 [-0.371; -0.124] |
+| hibrida | 21 | 0.676 | 0.605 | 0.829 | 10.0 | 0 | -0.100 [-0.162; -0.043] |
+| hibrida+reranker | 21 | 0.724 | 0.705 | 0.795 | 10.0 | 0 | referência |
+| final | 21 | 0.724 | 0.705 | 0.795 | 10.0 | 0 | +0.000 [+0.000; +0.000] |
 | sem filtros | 9 | 0.578 | 0.544 | 0.676 | 10.0 | 0 | -0.122 [-0.267; +0.000] (atual nessas 9: 0.667) |
 
 `final` = top-10 do reranker só com score ≥ limiar (o que chega ao LLM); a precisão é medida sobre as evidências entregues, e a coluna Evidências mostra quantas são em média. `sem filtros` só inclui perguntas em que a T11 extraiu filtros, comparadas ao atual nessas mesmas perguntas.
-
-**Atenção:** 1 reviews ainda sem rótulo (contadas como não relevantes). Preencha `eval/t28_rotulagem.xlsx` e rode `--importar-rotulos`.
 
 ## Recusa
 
