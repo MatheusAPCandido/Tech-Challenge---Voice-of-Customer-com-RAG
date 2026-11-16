@@ -267,8 +267,8 @@ O contrato entre os módulos (documentos, filtros, `Evidencia`, `ConsultaProcess
 1. **Transformação (T11).** `processar_pergunta()` em `src/retrieve.py` classifica o tipo
 
    (`pontual` / `agregada` / `fora_de_escopo`), extrai filtros e monta a consulta textual. Com
-    `LLM_PROVIDER=ollama` tenta JSON via Ollama (modelo `LLM_MODEL`, tipicamente Qwen2.5); se o
-    daemon falhar, cai nas regras locais.
+     `LLM_PROVIDER=ollama` tenta JSON via Ollama (modelo `LLM_MODEL`, tipicamente Qwen2.5); se o
+     daemon falhar, cai nas regras locais.
 2. **Busca híbrida (T12).** `buscar()` combina Chroma (vetorial) + BM25 e funde com RRF
 
    (`RRF_K=60`), formando um pool de candidatos.
@@ -700,7 +700,13 @@ print(perguntar('Quais padrões aparecem nas avaliações de clientes insatisfei
 
 ## Principais decisões técnicas
 
-_TODO: resumo das decisões e justificativas, com números da avaliação._
+- A busca combina índice vetorial (Chroma) e BM25 e funde os rankings com RRF, para recuperar tanto paráfrases quanto termos literais das avaliações.
+- Depois do RRF, um cross-encoder (`BAAI/bge-reranker-v2-m3`) reordena o pool e define o score final usado no limiar de relevância.
+- O limiar ficou em `LIMIAR_RELEVANCIA=0.5`, calibrado com rótulos humanos (T15). Nesse grid, 0,5 maximizou úteis retidos menos inúteis retidos; valores ≥ 0,55 passaram a zerar evidências em perguntas que deveriam responder.
+- Os guardrails recusam fora de escopo, ausência de evidência acima do limiar e evidência insuficiente, para o sistema não inventar resposta sem suporte nas avaliações. A taxa de recusa correta no conjunto de teste foi de cerca de 79% (29 perguntas).
+- O gate opcional `JUDGE_ENABLED` permanece desligado por padrão, para a avaliação e o uso cotidiano serem reprodutíveis sem depender do Ollama; quando ligado, usa Ollama com o modelo da transformação da pergunta (Qwen), e não o Gemini de geração.
+- A precisão@k foi medida só com rótulos da planilha T15, sem LLM de geração. A macro precisão@5 ficou em cerca de 0,90 e a @10 em cerca de 0,85 (18 perguntas com rótulos suficientes).
+- A fidelidade (groundedness) foi avaliada manualmente, sem RAGAS, com respostas geradas por Qwen2.5 via Ollama (`GEN_PROVIDER=ollama`, fallback vazio). Macro e micro ficaram em 1,0 em 15 perguntas elegíveis. Essa medição não se confunde com o Gemini usado na interface.
 
 ## Limitações e próximos passos
 
