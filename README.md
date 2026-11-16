@@ -73,6 +73,8 @@ recusar. A validação de citações não é afrouxada.
 │   └── eda/                 # gráficos da análise exploratória
 ├── eval/
 │   ├── perguntas.csv           # conjunto de perguntas de teste
+│   ├── rotulos_t15.xlsx        # T15: rótulos humanos (limiar / precisão@k)
+│   ├── fidelidade_rotulos.xlsx # T17b: rótulos humanos de fidelidade
 │   ├── gerar_rotulos_t15.py    # T15: planilha para calibrar o limiar
 │   ├── calibrar_limiar.py      # T15: sugere LIMIAR_RELEVANCIA
 │   ├── run_eval.py             # T17a: taxa de recusa correta
@@ -122,8 +124,8 @@ abaixo referem-se ao setup Qwen — não ao Gemini.
 | Métrica | Setup | Valor |
 | --- | --- | --- |
 | Recusa correta | busca real, `GEN_MOCK=true` | ~79% (n=29) |
-| Macro precisão@5 / @10 | rótulos T15 | ~0,90 / ~0,85 (n=18) |
-| Fidelidade macro / micro | Ollama `qwen2.5` | 1,0 / 1,0 (n=15 elegíveis) |
+| Macro precisão@5 / @10 | [rótulos T15](eval/rotulos_t15.xlsx) | ~0,90 / ~0,85 (n=18) |
+| Fidelidade macro / micro | Ollama `qwen2.5` · [rótulos](eval/fidelidade_rotulos.xlsx) | 1,0 / 1,0 (n=15 elegíveis) |
 | Recusa correta (T28) | busca real, T11 por regras, `GEN_MOCK=true` | ~97% (n=29) |
 | Precisão@5 / @10 (T28) | top-10 do pipeline atual, todas as evidências rotuladas | 0,72 / 0,71 (n=21) |
 
@@ -183,15 +185,17 @@ Com `USE_MOCK=true` no `.env`, a interface roda com dados falsos, sem precisar d
 
 ```bash
 # T17a — recusa correta + precisão@k (sem LLM de geração)
+# rótulos versionados: eval/rotulos_t15.xlsx
 USE_MOCK=false GEN_MOCK=true HF_HUB_OFFLINE=1 python -m eval.run_eval
-python -m eval.precisao_k
+python -m eval.precisao_k --xlsx eval/rotulos_t15.xlsx
 
 # T17b — fidelidade (geração real com Qwen2.5 via Ollama)
+# rótulos versionados: eval/fidelidade_rotulos.xlsx
 USE_MOCK=false GEN_MOCK=false GEN_PROVIDER=ollama GEN_MODEL=qwen2.5 \
   GEN_FALLBACK_MODEL= JUDGE_ENABLED=false HF_HUB_OFFLINE=1 \
   python -m eval.gerar_fidelidade
-# copiar eval/fidelidade_para_rotular.xlsx → eval/fidelidade_rotulos.xlsx e rotular B6–B8
-python -m eval.calcular_fidelidade
+# se for regenerar: copiar fidelidade_para_rotular.xlsx → fidelidade_rotulos.xlsx e rotular B6–B8
+python -m eval.calcular_fidelidade --xlsx eval/fidelidade_rotulos.xlsx
 
 # T28 — avaliação final e comparação de variações (sem LLM de geração)
 python -m eval.avaliacao_final
@@ -215,11 +219,11 @@ Por padrão o marker `integration` fica de fora (`addopts = -m "not integration"
 
 - A busca combina índice vetorial (Chroma) e BM25 e funde os rankings com RRF, para recuperar tanto paráfrases quanto termos literais das avaliações.
 - Depois do RRF, um cross-encoder (`BAAI/bge-reranker-v2-m3`) reordena o pool e define o score final usado no limiar de relevância.
-- O limiar ficou em `LIMIAR_RELEVANCIA=0.5`, calibrado com rótulos humanos (T15). Nesse grid, 0,5 maximizou úteis retidos menos inúteis retidos; valores ≥ 0,55 passaram a zerar evidências em perguntas que deveriam responder.
+- O limiar ficou em `LIMIAR_RELEVANCIA=0.5`, calibrado com rótulos humanos (T15) em [`eval/rotulos_t15.xlsx`](eval/rotulos_t15.xlsx). Nesse grid, 0,5 maximizou úteis retidos menos inúteis retidos; valores ≥ 0,55 passaram a zerar evidências em perguntas que deveriam responder.
 - Os guardrails recusam fora de escopo, ausência de evidência acima do limiar e evidência insuficiente, para o sistema não inventar resposta sem suporte nas avaliações. A taxa de recusa correta no conjunto de teste foi de cerca de 79% (29 perguntas).
 - O gate opcional `JUDGE_ENABLED` permanece desligado por padrão, para a avaliação e o uso cotidiano serem reprodutíveis sem depender do Ollama; quando ligado, usa Ollama com o modelo da transformação da pergunta (Qwen), e não o Gemini de geração.
-- A precisão@k foi medida só com rótulos da planilha T15, sem LLM de geração. A macro precisão@5 ficou em cerca de 0,90 e a @10 em cerca de 0,85 (18 perguntas com rótulos suficientes).
-- A fidelidade (groundedness) foi avaliada manualmente, sem RAGAS, com respostas geradas por Qwen2.5 via Ollama (`GEN_PROVIDER=ollama`, fallback vazio). Macro e micro ficaram em 1,0 em 15 perguntas elegíveis. Essa medição não se confunde com o Gemini usado na interface.
+- A precisão@k foi medida só com rótulos da planilha T15 ([`eval/rotulos_t15.xlsx`](eval/rotulos_t15.xlsx)), sem LLM de geração. A macro precisão@5 ficou em cerca de 0,90 e a @10 em cerca de 0,85 (18 perguntas com rótulos suficientes).
+- A fidelidade (groundedness) foi avaliada manualmente, sem RAGAS, com respostas geradas por Qwen2.5 via Ollama (`GEN_PROVIDER=ollama`, fallback vazio) e rótulos em [`eval/fidelidade_rotulos.xlsx`](eval/fidelidade_rotulos.xlsx). Macro e micro ficaram em 1,0 em 15 perguntas elegíveis. Essa medição não se confunde com o Gemini usado na interface.
 - O modelo de embedding é o `intfloat/multilingual-e5-base`. Na T07, o `BAAI/bge-m3` foi melhor na busca vetorial, mas a equipe manteve o `e5-base` porque toda a calibração e a avaliação foram feitas com ele.
 - Na avaliação final (T28), o reranker aumentou a precisão@10 de 0,61 (híbrida sem reranker) para 0,71, com diferença conclusiva; contra a busca só vetorial, o ganho (+0,09) não foi conclusivo com 21 perguntas.
 

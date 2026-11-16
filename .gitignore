@@ -12,6 +12,8 @@ chroma_db/
 artifacts/
 *.parquet
 eval/*.xlsx
+!eval/rotulos_t15.xlsx
+!eval/fidelidade_rotulos.xlsx
 eval/resultados.csv
 eval/metricas_precisao.csv
 eval/metricas_fidelidade.csv
