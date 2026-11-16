@@ -710,5 +710,15 @@ print(perguntar('Quais padrões aparecem nas avaliações de clientes insatisfei
 
 ## Limitações e próximos passos
 
-_TODO_
+**Limitações (recuperação e avaliação).**
+- A transformação da pergunta combina heurísticas locais com um modelo opcional via Ollama, o que favorece reprodutibilidade e baixo custo, com a natural restrição de cobertura de formulações muito atípicas.
+- Casos no limite entre “no escopo” e “sem evidência específica” (por exemplo perguntas hipotéticas com vocabulário de domínio) dependem do limiar e, se desejado, do gate opcional de suficiência.
+- As métricas de precisão@k e de fidelidade usam rotulagem humana, alinhada à prática de avaliação de RAG; isso introduz variação entre anotadores e exige conjuntos com rótulos suficientes por pergunta.
+- A fidelidade reportada foi medida com geração Qwen2.5 via Ollama, em protocolo controlado e com um único modelo, o que torna o resultado interpretável para esse setup de avaliação.
+- O gate `JUDGE_ENABLED` permanece desligado por padrão para priorizar estabilidade e reprodutibilidade nas medições; quando ativado, acrescenta uma checagem semântica adicional via Ollama.
+
+**Próximos passos (recuperação e avaliação).**
+- Ampliar e refinar o conjunto de rótulos humanos (T15) e, após mudanças relevantes no índice, recalibrar o limiar de relevância.
+- Explorar o gate de suficiência em cenários selecionados, documentando o impacto na qualidade percebida versus custo operacional.
+- Avaliar a integração de frameworks de métricas automáticas para RAG (por exemplo RAGAS), em complemento à fidelidade manual, para acelerar iterações mantendo um protocolo humano de referência.
 
