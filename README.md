@@ -366,10 +366,11 @@ USE_MOCK=false GEN_MOCK=false GEN_PROVIDER=ollama GEN_MODEL=qwen2.5 \
 python -m eval.calcular_fidelidade
 ```
 
-**Limitações:** rotulagem humana (segmentação de claims pode variar); recusas e
-`esperado=recusar` ficam de fora da fidelidade; precisão@k omite perguntas com poucos rótulos;
-fidelidade ≠ precisão de citação (falta de `[R#]` sozinha não zera a claim se o fato estiver nas
-evidências).
+**Limitações.** A fidelidade depende de rotulagem humana: duas pessoas podem cortar as
+afirmações de forma diferente e chegar a contagens distintas. Perguntas recusadas ou com
+`esperado=recusar` não entram na métrica. Na precisão@k, perguntas com poucos rótulos no ranking
+são omitidas da média. Por fim, fidelidade não é o mesmo que precisão de citação: a ausência de
+`[R#]` sozinha não invalida uma afirmação se o fato estiver nas evidências recuperadas.
 
 ## Exemplos de perguntas e respostas
 
