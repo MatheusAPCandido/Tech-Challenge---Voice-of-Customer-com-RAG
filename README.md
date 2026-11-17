@@ -7,15 +7,14 @@ fazer perguntas em linguagem natural sobre as avaliações de clientes da base
 [Brazilian E-Commerce Public Dataset by Olist](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce/data)
 e receber respostas **fundamentadas nas avaliações reais**, com as evidências exibidas ao usuário.
 
-> **Status:** em desenvolvimento. As seções marcadas com _TODO_ serão preenchidas pela equipe.
 
 ## Equipe
 
 | Integrante | Papel |
 | --- | --- |
-| _TODO_ | Pessoa A — Dados e base de conhecimento |
-| _TODO_ | Pessoa B — Recuperação, guardrails e avaliação |
-| _TODO_ | Pessoa C — Geração, interface e entrega |
+| Matheus Cândido | Pessoa A — Dados e base de conhecimento |
+| Matheus Burger | Pessoa B — Recuperação, guardrails e avaliação |
+| Diego Nascimento | Pessoa C — Geração, interface e entrega |
 
 ## Problema de negócio
 
@@ -100,8 +99,6 @@ recusar. A validação de citações não é afrouxada.
 
 ## Tecnologias
 
-_TODO: confirmar escolhas e versões._
-
 | Componente | Tecnologia |
 | --- | --- |
 | Linguagem | Python 3.11+ |
@@ -110,7 +107,7 @@ _TODO: confirmar escolhas e versões._
 | Banco vetorial | ChromaDB |
 | Busca lexical | rank-bm25 |
 | Reranker | `BAAI/bge-reranker-v2-m3` (cross-encoder) |
-| LLM | 2 opções: Ollama com Qwen2.5 e Gemini |
+| LLM | `qwen2.5` via Ollama (local; usado na avaliação e na demonstração) ou Gemini por API |
 | Interface | Streamlit |
 
 ## Avaliação
@@ -121,23 +118,104 @@ medição). Durante o projeto o **Gemini também foi utilizado** na interface
 (`GEN_PROVIDER=gemini`, com Ollama como reserva quando configurado). Os números de fidelidade
 abaixo referem-se ao setup Qwen — não ao Gemini.
 
-| Métrica | Setup | Valor |
-| --- | --- | --- |
-| Recusa correta | busca real, `GEN_MOCK=true` | ~79% (n=29) |
-| Macro precisão@5 / @10 | [rótulos T15](eval/rotulos_t15.xlsx) | ~0,90 / ~0,85 (n=18) |
-| Fidelidade macro / micro | Ollama `qwen2.5` · [rótulos](eval/fidelidade_rotulos.xlsx) | 1,0 / 1,0 (n=15 elegíveis) |
-| Recusa correta (T28) | busca real, T11 por regras, `GEN_MOCK=true` | ~97% (n=29) |
-| Precisão@5 / @10 (T28) | top-10 do pipeline atual, todas as evidências rotuladas | 0,72 / 0,71 (n=21) |
+| Métrica | Medição | Valor | Rótulos |
+| --- | --- | --- | --- |
+| Recusa correta | T17a: busca real, sem geração, configuração da época | ~79% (n=29) | gabarito de `eval/perguntas.csv` |
+| Precisão@5 / @10 | T17a: rótulos da T15 | ~0,90 / ~0,85 (n=18) | humanos ([`eval/rotulos_t15.xlsx`](eval/rotulos_t15.xlsx)) |
+| Fidelidade macro / micro | T17b: geração com `qwen2.5` via Ollama | 1,0 / 1,0 (n=15) | humanos ([`eval/fidelidade_rotulos.xlsx`](eval/fidelidade_rotulos.xlsx)) |
+| **Recusa correta** | **T28: busca real, T11 por regras, sem geração** | **~97% (n=29)** | gabarito de `eval/perguntas.csv` |
+| **Precisão@5 / @10** | **T28: todo o top-10 do pipeline atual** | **0,72 / 0,71 (n=21)** | **assistente de IA, às cegas** ([`eval/t28_rotulos.csv`](eval/t28_rotulos.csv)) |
 
-As linhas da T17a e da T28 não medem exatamente a mesma coisa; a diferença é explicada em
-[Avaliação final e comparação de variações (T28)](docs/execucao_tarefas.md#avaliação-final-e-comparação-de-variações-t28).
 
 Como cada métrica foi calculada, a comparação das variações da busca (T28) e as limitações de
 cada medição estão em [Avaliação em detalhe](docs/execucao_tarefas.md#avaliação-em-detalhe).
 
 ## Exemplos de perguntas e respostas
 
-_TODO (Pessoa C): incluir pelo menos uma pergunta pontual, uma agregada, uma com filtro e uma recusa._
+Saídas reais do sistema, geradas em 16/11/2026 no Google Colab (GPU T4) com o índice da base completa,
+na mesma configuração da avaliação final (T28): geração com `qwen2.5` via Ollama, sem modelo de reserva
+(`GEN_FALLBACK_MODEL` vazio), transformação da pergunta por regras (`LLM_PROVIDER` diferente de `ollama`)
+e `JUDGE_ENABLED=false`. Com os modelos já carregados, cada pergunta levou de 3 a 6 segundos; a primeira
+pergunta da sessão leva cerca de 1 minuto, porque carrega os modelos. As evidências estão resumidas:
+a interface mostra as dez recuperadas, com o texto completo, a data, o atraso, o estado e a relevância.
+
+### 1. Pergunta pontual
+
+**Pergunta:** "O que dizem sobre trocas, devoluções ou arrependimento da compra?"
+
+> Os clientes relatam problemas com trocas, devoluções e arrependimento da compra [R1][R2][R3][R5][R6][R7][R9][R10]:
+> arrependimento de ter comprado [R1][R9], dificuldade em registrar trocas ou devoluções [R5], problemas com o
+> processo de devolução [R6][R7], solicitação de informações sobre estorno [R10].
+
+Confiança: alta · 8 de 10 avaliações recuperadas citadas. Algumas evidências:
+
+| R# | Nota | Categoria | Trecho da avaliação |
+| --- | ---: | --- | --- |
+| R1 | 5 | bebes | "Eu me arrependi dessa compra e gostaria de devolver. Como eu faço?" |
+| R5 | 1 | informatica_acessorios | "Preciso realizar a troca do produto que está com defeito e não consigo registrar a solicitação no SITE." |
+| R7 | 1 | esporte_lazer | "Quero exercer meu direito de arrependimento, devolver o produto e receber meu dinheiro de volta. O site da stark dificulta o processo." |
+| R10 | 2 | cama_mesa_banho | "Solicito informações sobre a compra e o estorno da compra." |
+
+### 2. Pergunta com filtro
+
+**Pergunta:** "Há reclamações de clientes de SP sobre atraso na entrega?"
+
+A transformação da pergunta extraiu três filtros: `estado = SP`, `atrasou = True` e `review_score_max = 2`
+(a palavra "reclamações" restringe a notas 1 e 2).
+
+> Há reclamações de atraso na entrega em SP [R1][R2][R3][R4][R5][R6][R7][R8][R9][R10].
+
+Confiança: alta · 10 de 10 avaliações citadas, todas de SP, com entrega atrasada e nota 1 ou 2. Algumas evidências:
+
+| R# | Nota | Categoria | Trecho da avaliação |
+| --- | ---: | --- | --- |
+| R1 | 2 | sem_categoria | "Entrega em atraso" |
+| R5 | 1 | market_place | "O produto está com a entrega em atraso. Até o momento não obtive nenhum retorno do meu chamado que está em aberto!" |
+| R10 | 1 | automotivo | "Acredito que a entrega não foi realizada devido a greve dos caminhoneiros." |
+
+### 3. Pergunta agregada (frequência)
+
+**Pergunta:** "Quais padrões aparecem nas avaliações de clientes insatisfeitos?"
+
+A resposta começa pelas contagens, feitas em código sobre a base inteira (T24), e não só sobre as avaliações recuperadas:
+
+> **Na base inteira**, entre 10.836 avaliações com texto (notas 1 e 2 · todos os períodos), os assuntos que os clientes mais relatam são:
+> - Produto não recebido — 3.102 (28,6%)
+> - Pedido incompleto: faltou item, unidade ou peça — 1.610 (14,9%)
+> - Atendimento da loja, troca, devolução, cancelamento ou nota fiscal — 1.092 (10,1%)
+> - Produto errado ou diferente do anunciado — 724 (6,7%)
+> - Produto com defeito, quebrado ou danificado — 711 (6,6%)
+> - Sem assunto específico (opinião geral ou outros) — 2.226 (20,5%)
+
+Em seguida, o modelo ilustra com exemplos das avaliações recuperadas:
+
+> Os clientes insatisfeitos relatam atrasos na entrega [R2][R5][R6][R7][R8], produtos não entregues [R2][R8],
+> produtos que não correspondem ao pedido [R9][R10], e falta de consideração com o cliente [R6][R7].
+
+**Observação:** três das quatro afirmações do parágrafo são sustentadas pelas avaliações citadas. A primeira,
+"atrasos na entrega", não é: as avaliações citadas falam de produto não entregue (R2, R8), de insatisfação
+genérica (R5) e de descaso (R6, R7). É o tipo de erro descrito em [Limitações](#limitações-e-próximos-passos):
+o código confere se cada `[R#]` existe, mas não se a avaliação sustenta a frase.
+
+### 4. Recusa: pergunta fora do escopo
+
+**Pergunta:** "Qual a previsão do tempo em São Paulo amanhã?"
+
+> Esta pergunta está fora do escopo das avaliações de clientes.
+
+Motivo: `fora_de_escopo`. A recusa acontece antes da busca, então nenhuma avaliação é recuperada.
+
+### 5. Recusa: no tema, mas sem evidência
+
+**Pergunta:** "O que os clientes dizem sobre entrega por drone?"
+
+> As avaliações recuperadas não permitem responder a esta pergunta.
+
+Motivo: `sem_evidencia`. A busca recuperou dez avaliações sobre entrega, e nenhuma trata de entrega por drone.
+Uma delas fala de um drone de brinquedo ("O drone é lindo, porém a bateria não dura nada"), e o modelo não a
+confundiu com entrega por drone. O modelo devolveu a frase de recusa, e o código registrou a resposta como recusa.
+Na avaliação final (T28), medida sem gerar respostas, esta pergunta (P09) foi contada como erro; com a geração
+real, o sistema recusa.
 
 ## Como executar
 
@@ -212,7 +290,7 @@ pip install -r requirements.txt -r requirements-dev.txt
 python -m pytest
 ```
 
-Por padrão o marker `integration` fica de fora (`addopts = -m "not integration"`). Os testes de integração (índice real e gate de suficiência via Ollama) estão em
+Por padrão o marker `integration` fica de fora (`addopts = -m "not integration and not llm"`). Os testes de integração (índice real e gate de suficiência via Ollama) estão em
 [Testes de integração](docs/execucao_tarefas.md#testes-de-integração).
 
 ## Principais decisões técnicas
@@ -220,9 +298,9 @@ Por padrão o marker `integration` fica de fora (`addopts = -m "not integration"
 - A busca combina índice vetorial (Chroma) e BM25 e funde os rankings com RRF, para recuperar tanto paráfrases quanto termos literais das avaliações.
 - Depois do RRF, um cross-encoder (`BAAI/bge-reranker-v2-m3`) reordena o pool e define o score final usado no limiar de relevância.
 - O limiar ficou em `LIMIAR_RELEVANCIA=0.5`, calibrado com rótulos humanos (T15) em [`eval/rotulos_t15.xlsx`](eval/rotulos_t15.xlsx). Nesse grid, 0,5 maximizou úteis retidos menos inúteis retidos; valores ≥ 0,55 passaram a zerar evidências em perguntas que deveriam responder.
-- Os guardrails recusam fora de escopo, ausência de evidência acima do limiar e evidência insuficiente, para o sistema não inventar resposta sem suporte nas avaliações. A taxa de recusa correta no conjunto de teste foi de cerca de 79% (29 perguntas).
+- Os guardrails recusam fora de escopo, ausência de evidência acima do limiar e evidência insuficiente. Na avaliação final (T28), a recusa correta foi de 97% (29 perguntas), mas todas as recusas corretas vieram da classificação de escopo (T11): o limiar de 0,5 não cortou nenhuma evidência do top-10 (ver Limitações).
 - O gate opcional `JUDGE_ENABLED` permanece desligado por padrão, para a avaliação e o uso cotidiano serem reprodutíveis sem depender do Ollama; quando ligado, usa Ollama com o modelo da transformação da pergunta (Qwen), e não o Gemini de geração.
-- A precisão@k foi medida só com rótulos da planilha T15 ([`eval/rotulos_t15.xlsx`](eval/rotulos_t15.xlsx)), sem LLM de geração. A macro precisão@5 ficou em cerca de 0,90 e a @10 em cerca de 0,85 (18 perguntas com rótulos suficientes).
+- A precisão@k foi medida só com rótulos humanos da planilha T15 ([`eval/rotulos_t15.xlsx`](eval/rotulos_t15.xlsx)), sem LLM de geração. A macro precisão@5 ficou em cerca de 0,90 e a @10 em cerca de 0,85 (18 perguntas com rótulos suficientes).
 - A fidelidade (groundedness) foi avaliada manualmente, sem RAGAS, com respostas geradas por Qwen2.5 via Ollama (`GEN_PROVIDER=ollama`, fallback vazio) e rótulos em [`eval/fidelidade_rotulos.xlsx`](eval/fidelidade_rotulos.xlsx). Macro e micro ficaram em 1,0 em 15 perguntas elegíveis. Essa medição não se confunde com o Gemini usado na interface.
 - O modelo de embedding é o `intfloat/multilingual-e5-base`. Na T07, o `BAAI/bge-m3` foi melhor na busca vetorial, mas a equipe manteve o `e5-base` porque toda a calibração e a avaliação foram feitas com ele.
 - Na avaliação final (T28), o reranker aumentou a precisão@10 de 0,61 (híbrida sem reranker) para 0,71, com diferença conclusiva; contra a busca só vetorial, o ganho (+0,09) não foi conclusivo com 21 perguntas.
@@ -230,12 +308,13 @@ Por padrão o marker `integration` fica de fora (`addopts = -m "not integration"
 ## Limitações e próximos passos
 
 **Limitações (recuperação e avaliação).**
-- A transformação da pergunta combina heurísticas locais com um modelo opcional via Ollama, o que favorece reprodutibilidade e baixo custo, com a natural restrição de cobertura de formulações muito atípicas.
+- A transformação da pergunta foi avaliada só na versão por regras (`LLM_PROVIDER` diferente de `ollama`). Perguntas formuladas de um jeito que as regras não preveem podem ser mal classificadas ou ficar sem filtro.
 - Casos no limite entre “no escopo” e “sem evidência específica” (por exemplo perguntas hipotéticas com vocabulário de domínio) dependem do limiar e, se desejado, do gate opcional de suficiência.
-- As métricas de precisão@k e de fidelidade usam rotulagem humana, alinhada à prática de avaliação de RAG; isso introduz variação entre anotadores e exige conjuntos com rótulos suficientes por pergunta.
-- A fidelidade reportada foi medida com geração Qwen2.5 via Ollama, em protocolo controlado e com um único modelo, o que torna o resultado interpretável para esse setup de avaliação.
-- O gate `JUDGE_ENABLED` permanece desligado por padrão para priorizar estabilidade e reprodutibilidade nas medições; quando ativado, acrescenta uma checagem semântica adicional via Ollama.
-- Na avaliação final (T28), o limiar de 0,5 não cortou nenhuma evidência do top-10, e as recusas corretas vieram da classificação de escopo (T11). O limiar não barra perguntas no escopo mas sem resposta, como a P09 (entrega por drone).
+- Os rótulos de precisão da T15 e de fidelidade da T17b foram feitos por uma pessoa da equipe; os da T28, por um assistente de IA, às cegas e sem conferência humana. Não medimos a concordância entre rotuladores.
+- A fidelidade foi medida só com o `qwen2.5` (15 respostas). Com o Gemini, que também pode ser usado na interface, não foi medida.
+- A validação do código confere se cada `[R#]` existe, mas não se a avaliação citada sustenta a frase nem se números como "X de N" estão certos. Na rotulagem da fidelidade, em 5 das 15 respostas (P03, P04, P05, P06 e P13) uma citação apontava para uma avaliação que não sustentava a afirmação; a fidelidade conta a afirmação como sustentada quando alguma evidência a sustenta. A fidelidade foi medida na configuração da T17a (79% de recusa correta), não na da T28.
+- O gate `JUDGE_ENABLED` fica desligado por padrão.
+- Na avaliação final (T28), o limiar de 0,5 não cortou nenhuma evidência do top-10, e as recusas corretas vieram da classificação de escopo (T11). Como a T28 não gera respostas, a P09 (entrega por drone) contou como erro. Com a geração real, o modelo recusa a P09 (exemplo 5), mas essa recusa depende do modelo, e não de uma regra do código.
 - A transformação da pergunta não extrai filtro de período ("junho a agosto de 2018", "início de 2018"), o que derruba a precisão dessas perguntas (P28 a P30).
 
 **Próximos passos (recuperação e avaliação).**
