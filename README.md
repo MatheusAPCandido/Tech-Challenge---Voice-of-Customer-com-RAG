@@ -234,8 +234,15 @@ pip install -r requirements.txt
 
 ```bash
 cp .env.example .env   # no Windows: copy .env.example .env
-# edite o .env com suas chaves
 ```
+
+No `.env`, ajuste:
+
+- `USE_MOCK=false` para usar a base real. Com `true` (padrão do exemplo), a interface mostra avaliações e respostas de exemplo, sem precisar da base.
+- O modelo de geração, uma de duas opções:
+  - **Qwen2.5 local (usado na avaliação e na demonstração):** instale o [Ollama](https://ollama.com), rode `ollama pull qwen2.5` e use `GEN_PROVIDER=ollama`, `GEN_MODEL=qwen2.5` e `GEN_FALLBACK_MODEL=` (vazio).
+  - **Gemini por API:** `GEN_PROVIDER=gemini` e uma chave em `GOOGLE_API_KEY` (criada em https://aistudio.google.com). Com o Ollama instalado, `GEN_FALLBACK_MODEL=qwen2.5` serve de reserva quando a API falha.
+
 
 ### 3. Baixar os dados
 
