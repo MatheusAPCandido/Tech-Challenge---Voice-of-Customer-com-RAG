@@ -23,8 +23,8 @@ USE_MOCK = _bool("USE_MOCK", "true")
 
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "intfloat/multilingual-e5-base")
 RERANKER_MODEL = os.getenv("RERANKER_MODEL", "BAAI/bge-reranker-v2-m3")
-LLM_PROVIDER = os.getenv("LLM_PROVIDER", "openai")
-LLM_MODEL = os.getenv("LLM_MODEL", "gpt-4o-mini")
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "regras")
+LLM_MODEL = os.getenv("LLM_MODEL", "qwen2.5")
 
 # Geração da resposta (T21): provedor próprio, separado do LLM_PROVIDER da T11.
 GEN_PROVIDER = os.getenv("GEN_PROVIDER", "gemini")
